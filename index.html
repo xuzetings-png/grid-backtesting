@@ -2,33 +2,34 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini Grid Lab - 全点量化审计版</title>
+    <title>Gemini Grid Lab - 深度量化审计版 v2.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        html, body { height: 100%; margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0f1e; color: #e0e0e0; font-size: 12px; }
-        .main-wrapper { display: flex; height: 100vh; padding: 8px; box-sizing: border-box; gap: 8px; }
-        .sidebar { width: 320px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; height: 100%; }
-        .card { background: #161c2d; padding: 10px; border-radius: 6px; border: 1px solid #2d3343; }
-        .row { display: flex; gap: 5px; margin-bottom: 5px; }
+        html, body { height: 100%; margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0a0f1e; color: #e0e0e0; font-size: 12px; }
+        .main-wrapper { display: flex; height: 100vh; padding: 10px; box-sizing: border-box; gap: 10px; }
+        .sidebar { width: 340px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; height: 100%; overflow-y: auto; }
+        .card { background: #161c2d; padding: 12px; border-radius: 8px; border: 1px solid #2d3343; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; }
         .input-item { display: flex; flex-direction: column; flex: 1; }
-        label { font-size: 9px; color: #848da3; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; }
-        input, select { background: #0a0f1e; border: 1px solid #3d4455; color: #fff; padding: 3px; border-radius: 4px; font-size: 11px; }
-        .btn-fetch { background: #23312c; color: #52c41a; border: 1px solid #52c41a; padding: 6px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 8px; }
-        .btn-run { background: #1890ff; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 13px; }
-        #audit-data-center { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .strategy-card { background: #1c243a; border-radius: 6px; border-left: 4px solid #ccc; padding: 6px; }
+        label { font-size: 10px; color: #848da3; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+        input, select { background: #0a0f1e; border: 1px solid #3d4455; color: #fff; padding: 5px; border-radius: 4px; font-size: 12px; transition: border 0.2s; }
+        input:focus { border-color: #1890ff; outline: none; }
+        .btn-fetch { background: #1b2d26; color: #52c41a; border: 1px solid #2d4d2d; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; transition: 0.3s; }
+        .btn-fetch:hover { background: #233c30; }
+        .btn-run { background: #1890ff; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px; box-shadow: 0 4px 10px rgba(24,144,255,0.3); }
+        .btn-run:disabled { background: #2d3343; cursor: not-allowed; opacity: 0.6; }
+        #audit-data-center { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .strategy-card { background: #1c243a; border-radius: 6px; border-left: 4px solid #ccc; padding: 10px; position: relative; }
         .card-long { border-left-color: #52c41a; }
         .card-short { border-left-color: #ff4d4f; }
         .card-neutral { border-left-color: #faad14; }
         .card-hold { border-left-color: #1890ff; }
         .card-cash { border-left-color: #848da3; }
-        .strat-name { font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-family: monospace; font-size: 10px; }
-        .chart-view { flex-grow: 1; background: #161c2d; border-radius: 6px; border: 1px solid #2d3343; padding: 12px; }
+        .strat-name { font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-family: "JetBrains Mono", monospace; font-size: 11px; color: #b0b8c9; }
+        .chart-view { flex-grow: 1; background: #161c2d; border-radius: 8px; border: 1px solid #2d3343; padding: 15px; display: flex; flex-direction: column; }
         .up { color: #52c41a; } .down { color: #ff4d4f; } .warn { color: #faad14; }
-        .chart-legend { display: flex; gap: 16px; justify-content: center; margin-bottom: 8px; font-size: 11px; }
-        .legend-item { display: flex; align-items: center; gap: 4px; }
-        .legend-color { width: 20px; height: 3px; border-radius: 2px; }
+        #mainChart { flex-grow: 1; width: 100% !important; height: 100% !important; }
     </style>
 </head>
 <body>
@@ -36,37 +37,42 @@
     <div class="sidebar">
         <div class="card">
             <div class="row">
-                <div class="input-item"><label>币对</label><input id="symbol" value="BTCUSDC"></div>
-                <div class="input-item"><label>粒度</label><select id="interval"><option value="5m">5m</option><option value="15m">15m</option><option value="1h" selected>1h</option><option value="4h">4h</option><option value="1d">1d</option></select></div>
+                <div class="input-item"><label>交易对</label><input id="symbol" value="BTCUSDC"></div>
+                <div class="input-item"><label>周期</label><select id="interval"><option value="15m">15m</option><option value="1h" selected>1h</option><option value="4h">4h</option><option value="1d">1d</option></select></div>
             </div>
             <div class="row">
                 <div class="input-item"><label>开始日期</label><input id="start" type="date"></div>
                 <div class="input-item"><label>结束日期</label><input id="end" type="date"></div>
             </div>
-            <button class="btn-fetch" onclick="fetchMarket()">📡 获取真实行情</button>
+            <button class="btn-fetch" onclick="fetchMarket()">📡 拉取 K 线审计数据</button>
             
             <div class="row">
-                <div class="input-item"><label>起点价格(START)</label><input id="startPrice" type="number" readonly></div>
-                <div class="input-item"><label>终点价格(END)</label><input id="endPrice" type="number" readonly></div>
-            </div>
-            <div class="row">
-                <div class="input-item"><label>区间最高(MAX)</label><input id="maxPrice" type="number" readonly></div>
-                <div class="input-item"><label>区间最低(MIN)</label><input id="minPrice" type="number" readonly></div>
+                <div class="input-item"><label>区间最高 (MAX)</label><input id="maxPrice" type="number" step="any"></div>
+                <div class="input-item"><label>区间最低 (MIN)</label><input id="minPrice" type="number" step="any"></div>
             </div>
 
             <div class="row">
-                <div class="input-item"><label>网格下限</label><input id="lower" type="number"></div>
-                <div class="input-item"><label>网格上限</label><input id="upper" type="number"></div>
+                <div class="input-item"><label>网格数量</label><input id="grids" type="number" value="50"></div>
+                <div class="input-item"><label>网格模式</label>
+                    <select id="gridMode">
+                        <option value="arithmetic">等差 (Arithmetic)</option>
+                        <option value="geometric">等比 (Geometric)</option>
+                    </select>
+                </div>
             </div>
             <div class="row">
-                <div class="input-item"><label>格数</label><input id="grids" type="number" value="100"></div>
-                <div class="input-item"><label>费率(万)</label><input id="fee" type="number" value="2"></div>
+                <div class="input-item"><label>单边费率 (%)</label><input id="fee" type="number" value="0.05" step="0.01"></div>
+                <div class="input-item"><label>初始本金 (USD)</label><input id="capital" type="number" value="1000"></div>
             </div>
-            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 启动全量深度审计</button>
+            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 执行深度回测审计</button>
         </div>
         <div id="audit-data-center"></div>
     </div>
     <div class="chart-view">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0; color: #1890ff;">净值走势对比 (Equity Curve)</h3>
+            <span id="data-info" style="font-size: 11px; color: #848da3;">数据量: 0 根 K 线</span>
+        </div>
         <canvas id="mainChart"></canvas>
     </div>
 </div>
@@ -74,286 +80,190 @@
 <script>
 let chart; 
 let globalKlines = [];
-const INIT_CAPITAL = 1000; // 初始本金固定1000USD
 
-// 页面加载时初始化默认日期
 window.onload = () => {
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 30); // 默认最近30天
+    start.setDate(end.getDate() - 30);
     document.getElementById('start').value = start.toISOString().split('T')[0];
     document.getElementById('end').value = end.toISOString().split('T')[0];
 };
 
-// 分页获取币安完整K线行情（解决单次1000条限制）
 async function fetchMarket() {
     const symbol = document.getElementById('symbol').value.toUpperCase();
     const interval = document.getElementById('interval').value;
     let sTime = new Date(document.getElementById('start').value).getTime();
     const eTime = new Date(document.getElementById('end').value).setHours(23,59,59,999);
-    const limit = 1000;
     globalKlines = [];
     
     try {
-        // 循环分页拉取，直到数据量不足1000条或到达结束时间
         while (true) {
-            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${sTime}&endTime=${eTime}&limit=${limit}`);
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${sTime}&endTime=${eTime}&limit=1000`);
             const data = await res.json();
-            
             if (!data || data.length === 0) break;
-            
             globalKlines = globalKlines.concat(data);
-            
-            // 如果返回数据少于限制条数，说明已经是最后一页
-            if (data.length < limit) break;
-            
-            // 更新下一次请求的起始时间为最后一条K线的时间+1
-            const lastTime = data[data.length - 1][0];
-            if (lastTime >= eTime) break;
-            sTime = lastTime + 1;
+            if (data.length < 1000) break;
+            sTime = data[data.length - 1][0] + 1;
         }
         
-        if(!globalKlines.length) {
-            alert("行情获取失败，请检查币对、时间区间是否正确");
-            return;
-        }
+        if(!globalKlines.length) return alert("未获取到数据");
 
-        // 填充行情统计数据
-        const startPrice = parseFloat(globalKlines[0][4]);
-        const endPrice = parseFloat(globalKlines[globalKlines.length-1][4]);
-        const maxPrice = Math.max(...globalKlines.map(k=>parseFloat(k[2])));
-        const minPrice = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
-
-        document.getElementById('startPrice').value = startPrice.toFixed(2);
-        document.getElementById('endPrice').value = endPrice.toFixed(2);
-        document.getElementById('maxPrice').value = maxPrice.toFixed(2);
-        document.getElementById('minPrice').value = minPrice.toFixed(2);
-        
-        // 自动填充网格上下限为区间高低点
-        document.getElementById('lower').value = minPrice.toFixed(2);
-        document.getElementById('upper').value = maxPrice.toFixed(2);
-        
-        // 启用回测按钮
+        const prices = globalKlines.map(k => parseFloat(k[4]));
+        document.getElementById('maxPrice').value = Math.max(...globalKlines.map(k=>parseFloat(k[2])));
+        document.getElementById('minPrice').value = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
+        document.getElementById('data-info').innerText = `数据量: ${globalKlines.length} 根 K 线`;
         document.getElementById('run-btn').disabled = false;
-    } catch(e) {
-        alert(`行情获取失败：${e.message}，请检查网络或币对是否正确`);
-        console.error(e);
-    }
+    } catch(e) { alert("获取失败: " + e.message); }
 }
 
-// 核心网格计算引擎
-function coreCalc(type, prices, startPrice, gridDiff, perGridCapital, feeRate) {
-    let usd = INIT_CAPITAL; // 初始本金
-    let btc = 0; // 持仓数量（正数为多单，负数为空单）
-    let tradeCount = 0; // 成交次数
-    let totalArbitrage = 0; // 总套利收益
-    let totalFees = 0; // 总手续费
-    let equityHistory = []; // 净值曲线
+// 核心计算逻辑：MDD 统计 + K 线内趋势撮合
+function coreCalc(type, gridPrices, startPrice, feeRate, initCapital) {
+    let usd = initCapital;
+    let position = 0;
+    let tradeCount = 0;
+    let totalFees = 0;
+    let totalArbitrage = 0;
+    let equityHistory = [];
+    let maxEquity = initCapital;
+    let maxDrawdown = 0;
 
-    const gridCount = prices.length;
-    // 分类型初始化状态
-    let longStatus = []; // 多单状态：true=可开多，false=已持多待平
-    let shortStatus = []; // 空单状态：true=可开空，false=已持空待平
+    const gridCount = gridPrices.length;
+    // 网格价格差（等差模式下使用，等比模式下作为近似参考或在处理中动态计算）
+    const getDiff = (idx) => idx < gridCount - 1 ? gridPrices[idx+1] - gridPrices[idx] : gridPrices[idx] - gridPrices[idx-1];
 
-    // ========== 1. 按策略类型初始化状态与底仓 ==========
-    if(type === "long") {
-        // 做多网格：仅多单，低于起始价的档位预先买入底仓
-        longStatus = new Array(gridCount).fill(true);
-        shortStatus = new Array(gridCount).fill(false); // 做空网格禁用空单
+    // 初始化状态：true表示该档位可执行开仓（多网格买，空网格卖）
+    let longActive = new Array(gridCount).fill(type === "long" || type === "neutral");
+    let shortActive = new Array(gridCount).fill(type === "short" || type === "neutral");
+    let prevClose = startPrice;
+
+    // 每格分配资金
+    const perGridUsd = initCapital / gridCount;
+
+    globalKlines.forEach(k => {
+        const [t, o, h, l, c] = k.map(Number);
+        const isBullish = c > prevClose;
+
+        const executeTrade = (i) => {
+            const p = gridPrices[i];
+            const diff = getDiff(i);
+
+            // 做多/中性多逻辑
+            if (longActive[i]) {
+                if (prevClose > p && l <= p) { // 下穿买入
+                    const amt = perGridUsd / p;
+                    const cost = perGridUsd * (1 + feeRate);
+                    if (usd >= cost) {
+                        usd -= cost; position += amt; totalFees += (perGridUsd * feeRate);
+                        longActive[i] = false;
+                    }
+                }
+            } else if (type !== "short") {
+                const target = p + diff;
+                if (prevClose < target && h >= target) { // 上穿卖出
+                    const amt = perGridUsd / p;
+                    const income = amt * target * (1 - feeRate);
+                    usd += income; position -= amt; totalFees += (amt * target * feeRate);
+                    totalArbitrage += (income - perGridUsd);
+                    tradeCount++; longActive[i] = true;
+                }
+            }
+
+            // 做空/中性空逻辑
+            if (shortActive[i]) {
+                if (prevClose < p && h >= p) { // 上穿卖出（开空）
+                    const amt = perGridUsd / p;
+                    const income = perGridUsd * (1 - feeRate);
+                    if (usd >= perGridUsd) { // 模拟保证金占用
+                        usd += income; position -= amt; totalFees += (perGridUsd * feeRate);
+                        shortActive[i] = false;
+                    }
+                }
+            } else if (type !== "long") {
+                const target = p - diff;
+                if (prevClose > target && l <= target) { // 下穿买入（平空）
+                    const amt = perGridUsd / p;
+                    const cost = amt * target * (1 + feeRate);
+                    usd -= cost; position += amt; totalFees += (amt * target * feeRate);
+                    totalArbitrage += (perGridUsd - cost);
+                    tradeCount++; shortActive[i] = true;
+                }
+            }
+        };
+
+        // K线内撮合顺序优化：上涨先看卖出，下跌先看买入
+        if (isBullish) { for(let i=0; i<gridCount; i++) executeTrade(i); }
+        else { for(let i=gridCount-1; i>=0; i--) executeTrade(i); }
+
+        const curEquity = usd + position * c;
+        equityHistory.push(curEquity);
         
-        prices.forEach((price, idx) => {
-            if(price < startPrice && usd >= perGridCapital) {
-                // 预先买入底仓
-                const amount = perGridCapital / price;
-                btc += amount;
-                usd -= perGridCapital * (1 + feeRate);
-                totalFees += perGridCapital * feeRate;
-                longStatus[idx] = false; // 标记已持多
-            }
-        });
-    } 
-    else if(type === "short") {
-        // 做空网格：仅空单，高于起始价的档位预先开空仓
-        longStatus = new Array(gridCount).fill(false); // 做空网格禁用多单
-        shortStatus = new Array(gridCount).fill(true);
+        // MDD 计算
+        if (curEquity > maxEquity) maxEquity = curEquity;
+        const dd = (maxEquity - curEquity) / maxEquity;
+        if (dd > maxDrawdown) maxDrawdown = dd;
         
-        prices.forEach((price, idx) => {
-            if(price > startPrice && usd >= perGridCapital) {
-                // 预先开空仓
-                const amount = perGridCapital / price;
-                btc -= amount;
-                usd += perGridCapital * (1 - feeRate);
-                totalFees += perGridCapital * feeRate;
-                shortStatus[idx] = false; // 标记已持空
-            }
-        });
-    } 
-    else if(type === "neutral") {
-        // 中性网格：双向交易，不预先开仓，双状态初始化
-        longStatus = new Array(gridCount).fill(true);
-        shortStatus = new Array(gridCount).fill(true);
-    }
-
-    // ========== 2. 逐根K线执行交易逻辑 ==========
-    globalKlines.forEach(kline => {
-        const low = parseFloat(kline[3]);
-        const high = parseFloat(kline[2]);
-        const close = parseFloat(kline[4]);
-
-        // 遍历所有网格档位，按策略类型执行交易
-        prices.forEach((gridPrice, idx) => {
-            // ------------------------------
-            // 做多网格 & 中性网格 多单逻辑
-            // ------------------------------
-            if((type === "long" || type === "neutral") && longStatus[idx]) {
-                // 价格下跌到档位，开多单
-                if(low <= gridPrice && usd >= perGridCapital) {
-                    const amount = perGridCapital / gridPrice;
-                    btc += amount;
-                    usd -= perGridCapital * (1 + feeRate);
-                    totalFees += perGridCapital * feeRate;
-                    longStatus[idx] = false;
-                }
-            }
-
-            // 多单平仓逻辑：价格上涨到上一档位，平多单
-            if((type === "long" || type === "neutral") && !longStatus[idx]) {
-                const sellPrice = gridPrice + gridDiff;
-                if(high >= sellPrice) {
-                    const amount = perGridCapital / gridPrice;
-                    const sellValue = amount * sellPrice;
-                    btc -= amount;
-                    usd += sellValue * (1 - feeRate);
-                    totalFees += sellValue * feeRate;
-                    totalArbitrage += (sellValue - perGridCapital);
-                    tradeCount++;
-                    longStatus[idx] = true;
-                }
-            }
-
-            // ------------------------------
-            // 做空网格 & 中性网格 空单逻辑
-            // ------------------------------
-            if((type === "short" || type === "neutral") && shortStatus[idx]) {
-                // 价格上涨到档位，开空单
-                if(high >= gridPrice && usd >= perGridCapital) {
-                    const amount = perGridCapital / gridPrice;
-                    btc -= amount;
-                    usd += perGridCapital * (1 - feeRate);
-                    totalFees += perGridCapital * feeRate;
-                    shortStatus[idx] = false;
-                }
-            }
-
-            // 空单平仓逻辑：价格下跌到下一档位，平空单
-            if((type === "short" || type === "neutral") && !shortStatus[idx]) {
-                const buyPrice = gridPrice - gridDiff;
-                if(low <= buyPrice) {
-                    const amount = perGridCapital / gridPrice;
-                    const buyValue = amount * buyPrice;
-                    btc += amount;
-                    usd -= buyValue * (1 + feeRate);
-                    totalFees += buyValue * feeRate;
-                    totalArbitrage += (perGridCapital - buyValue);
-                    tradeCount++;
-                    shortStatus[idx] = true;
-                }
-            }
-        });
-
-        // 记录当前净值（本金+持仓市值）
-        const currentEquity = usd + btc * close;
-        equityHistory.push(currentEquity);
+        prevClose = c;
     });
 
-    // 计算最终收益与Alpha
-    const finalEquity = equityHistory[equityHistory.length - 1];
-    const strategyReturn = (finalEquity / INIT_CAPITAL - 1) * 100;
-    const benchmarkReturn = (parseFloat(globalKlines[globalKlines.length-1][4]) / parseFloat(globalKlines[0][4]) - 1) * 100;
-    const alpha = (strategyReturn - benchmarkReturn).toFixed(2);
-
-    return {
-        history: equityHistory,
-        tradeCount,
-        totalArbitrage,
-        totalFees,
-        strategyReturn,
-        alpha
-    };
+    const finalReturn = (equityHistory[equityHistory.length-1] / initCapital - 1) * 100;
+    return { history: equityHistory, tradeCount, totalFees, totalArbitrage, finalReturn, mdd: maxDrawdown * 100 };
 }
 
-// 执行回测主函数
 function runBacktest() {
-    // 获取回测参数
-    const lowerPrice = parseFloat(document.getElementById('lower').value);
-    const upperPrice = parseFloat(document.getElementById('upper').value);
-    const gridCount = parseInt(document.getElementById('grids').value);
-    const feeRate = parseFloat(document.getElementById('fee').value) / 10000; // 万分之几转小数
+    const min = parseFloat(document.getElementById('minPrice').value);
+    const max = parseFloat(document.getElementById('maxPrice').value);
+    const count = parseInt(document.getElementById('grids').value);
+    const fee = parseFloat(document.getElementById('fee').value) / 100;
+    const capital = parseFloat(document.getElementById('capital').value);
+    const mode = document.getElementById('gridMode').value;
     const startPrice = parseFloat(globalKlines[0][4]);
 
-    // 计算网格参数
-    const gridDiff = (upperPrice - lowerPrice) / gridCount; // 每格价差
-    const perGridCapital = INIT_CAPITAL / gridCount; // 每格分配资金
-    const gridPrices = Array.from({length: gridCount}, (_, i) => lowerPrice + i * gridDiff); // 所有网格档位价格
+    // 生成价格网格
+    let gridPrices = [];
+    if (mode === "arithmetic") {
+        const step = (max - min) / (count - 1);
+        for(let i=0; i<count; i++) gridPrices.push(min + i * step);
+    } else {
+        const ratio = Math.pow(max / min, 1 / (count - 1));
+        for(let i=0; i<count; i++) gridPrices.push(min * Math.pow(ratio, i));
+    }
 
-    // 分别计算3种网格策略
-    const longResult = coreCalc("long", gridPrices, startPrice, gridDiff, perGridCapital, feeRate);
-    const shortResult = coreCalc("short", gridPrices, startPrice, gridDiff, perGridCapital, feeRate);
-    const neutralResult = coreCalc("neutral", gridPrices, startPrice, gridDiff, perGridCapital, feeRate);
-    
-    // 计算基准策略（全仓持有Buy&Hold）
-    const benchmarkHistory = globalKlines.map(k => (INIT_CAPITAL / startPrice) * parseFloat(k[4]));
-    const benchmarkReturn = (benchmarkHistory[benchmarkHistory.length-1] / INIT_CAPITAL - 1) * 100;
-
-    // 渲染净值曲线图表
-    renderChart(longResult.history, shortResult.history, neutralResult.history, benchmarkHistory);
-
-    // 渲染审计数据面板
-    const buildStrategyCard = (name, className, result) => {
-        const returnClass = result.strategyReturn >= 0 ? 'up' : 'down';
-        const alphaClass = result.alpha >= 0 ? 'up' : 'down';
-        return `
-        <div class="strategy-card ${className}">
-            <div class="strat-name">
-                <span>${name}</span>
-                <span class="${returnClass}">${result.strategyReturn.toFixed(2)}%</span>
-            </div>
-            <div class="strat-grid">
-                <span>成交次数: ${result.tradeCount}</span>
-                <span>手续费: -${result.totalFees.toFixed(2)}</span>
-                <span>套利净利: +${result.totalArbitrage.toFixed(2)}</span>
-                <span>Alpha: <span class="${alphaClass}">${result.alpha}%</span></span>
-            </div>
-        </div>
-        `;
+    const results = {
+        long: coreCalc("long", gridPrices, startPrice, fee, capital),
+        short: coreCalc("short", gridPrices, startPrice, fee, capital),
+        neutral: coreCalc("neutral", gridPrices, startPrice, fee, capital)
     };
 
-    document.getElementById('audit-data-center').innerHTML = 
-        buildStrategyCard("做多网格 (Long)", "card-long", longResult) +
-        buildStrategyCard("做空网格 (Short)", "card-short", shortResult) +
-        buildStrategyCard("中性网格 (Neutral)", "card-neutral", neutralResult) +
-        `
-        <div class="strategy-card card-hold">
-            <div class="strat-name">
-                <span>全仓持有 (Benchmark)</span>
-                <span class="${benchmarkReturn >=0 ? 'up' : 'down'}">${benchmarkReturn.toFixed(2)}%</span>
-            </div>
-            <div class="strat-grid">
-                <span>终点价值: ${benchmarkHistory[benchmarkHistory.length-1].toFixed(2)} USD</span>
-                <span>基准策略: Buy & Hold</span>
-            </div>
-        </div>
-        `;
+    // Benchmark (Hold)
+    const holdHistory = globalKlines.map(k => (capital * (1-fee) / startPrice) * parseFloat(k[4]));
+    const holdRet = (holdHistory[holdHistory.length-1] / capital - 1) * 100;
+
+    renderChart(results, holdHistory, capital);
+    renderUI(results, holdRet, capital);
 }
 
-// 渲染净值图表（支持图例点击显隐）
-function renderChart(longData, shortData, neutralData, benchmarkData) {
+function renderUI(res, holdRet, capital) {
+    const buildCard = (title, cls, d) => `
+        <div class="strategy-card ${cls}">
+            <div class="strat-name"><span>${title}</span><span class="${d.finalReturn>=0?'up':'down'}">${d.finalReturn.toFixed(2)}%</span></div>
+            <div class="strat-grid">
+                <span>成交: ${d.tradeCount}次</span> <span>费率: -${d.totalFees.toFixed(2)}</span>
+                <span>套利: +${d.totalArbitrage.toFixed(2)}</span> <span>回撤: ${(d.mdd||0).toFixed(2)}%</span>
+            </div>
+        </div>`;
+
+    document.getElementById('audit-data-center').innerHTML = 
+        buildCard("做多网格 (Long)", "card-long", res.long) +
+        buildCard("做空网格 (Short)", "card-short", res.short) +
+        buildCard("中性网格 (Neutral)", "card-neutral", res.neutral) +
+        `<div class="strategy-card card-hold"><div class="strat-name"><span>持有基准 (Hold)</span><span class="${holdRet>=0?'up':'down'}">${holdRet.toFixed(2)}%</span></div></div>`;
+}
+
+function renderChart(res, hold, capital) {
     if (chart) chart.destroy();
-    
-    // 格式化X轴标签为日期
     const labels = globalKlines.map(k => {
-        const date = new Date(k[0]);
-        return `${date.getMonth()+1}/${date.getDate()}`;
+        const d = new Date(k[0]);
+        return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:00`;
     });
 
     chart = new Chart(document.getElementById('mainChart'), {
@@ -361,61 +271,19 @@ function renderChart(longData, shortData, neutralData, benchmarkData) {
         data: {
             labels: labels,
             datasets: [
-                { label: 'Long', data: longData, borderColor: '#52c41a', borderWidth: 2, pointRadius: 0, tension: 0.1 },
-                { label: 'Short', data: shortData, borderColor: '#ff4d4f', borderWidth: 2, pointRadius: 0, tension: 0.1 },
-                { label: 'Neutral', data: neutralData, borderColor: '#faad14', borderWidth: 2, pointRadius: 0, tension: 0.1 },
-                { label: 'Benchmark', data: benchmarkData, borderColor: '#1890ff', borderWidth: 2, borderDash: [5,5], pointRadius: 0, tension: 0.1 }
+                { label: 'Long', data: res.long.history, borderColor: '#52c41a', borderWidth: 1.5, pointRadius: 0 },
+                { label: 'Short', data: res.short.history, borderColor: '#ff4d4f', borderWidth: 1.5, pointRadius: 0 },
+                { label: 'Neutral', data: res.neutral.history, borderColor: '#faad14', borderWidth: 1.5, pointRadius: 0 },
+                { label: 'Hold', data: hold, borderColor: '#1890ff', borderDash: [5,5], borderWidth: 1, pointRadius: 0 }
             ]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 500 },
-            interaction: {
-                mode: 'index',
-                intersect: false
+            responsive: true, maintainAspectRatio: false,
+            scales: { 
+                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10, color: '#848da3' }, grid: { display: false } },
+                y: { grid: { color: '#2d3343' }, ticks: { color: '#848da3' } }
             },
-            scales: {
-                x: {
-                    grid: { color: '#2d3343', drawBorder: false },
-                    ticks: { color: '#848da3', font: { size: 10 } }
-                },
-                y: {
-                    grid: { color: '#2d3343', drawBorder: false },
-                    ticks: { color: '#848da3', font: { size: 10 } }
-                }
-            },
-            plugins: {
-                legend: { 
-                    display: true, // 确保图例显示
-                    position: 'top',
-                    labels: {
-                        color: '#e0e0e0',
-                        font: { size: 11 },
-                        usePointStyle: true,
-                        padding: 15
-                    },
-                    onClick: function(e, legendItem, legend) {
-                        // 手动实现图例点击显隐逻辑，确保交互正常
-                        const index = legendItem.datasetIndex;
-                        const ci = legend.chart;
-                        const meta = ci.getDatasetMeta(index);
-                        
-                        // 切换隐藏状态
-                        meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-                        ci.update();
-                    }
-                },
-                tooltip: {
-                    backgroundColor: '#0a0f1e',
-                    titleColor: '#fff',
-                    bodyColor: '#e0e0e0',
-                    borderColor: '#2d3343',
-                    borderWidth: 1,
-                    displayColors: true,
-                    padding: 8
-                }
-            }
+            plugins: { legend: { labels: { color: '#e0e0e0', boxWidth: 20 } } }
         }
     });
 }
