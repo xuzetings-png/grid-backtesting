@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini Grid Lab - 全视图审计终端 v5.3</title>
+    <title>Gemini Grid Lab - 全视图审计终端 v5.4</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
@@ -28,7 +28,6 @@
         }
 
         .main-wrapper { display: flex; height: 100vh; padding: 6px; box-sizing: border-box; gap: 6px; }
-        
         .sidebar { width: 340px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; height: 100%; }
         
         .config-card { 
@@ -57,21 +56,16 @@
         .btn-fetch { background: #1c1c1c; color: var(--red); border: 1px solid #442222; padding: 2px; border-radius: 3px; cursor: pointer; width: 100%; font-size: 9px; margin: 2px 0; }
         .btn-run { background: var(--red); color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 11px; box-shadow: 0 2px 8px rgba(245,34,45,0.2); }
 
-        #audit-data-center { 
-            flex: 1; display: flex; flex-direction: column; gap: 4px; 
-            min-height: 0; overflow: hidden; 
-        }
+        #audit-data-center { flex: 1; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow: hidden; }
         
         .log-row {
-            flex: 1; 
-            background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+            flex: 1; background: rgba(255,255,255,0.02); border: 1px solid var(--border);
             border-radius: 4px; padding: 4px 8px; display: flex; flex-direction: column; 
-            justify-content: space-around; 
-            min-height: 0;
+            justify-content: space-around; min-height: 0;
         }
         
         .log-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .log-title { font-weight: bold; font-size: 10px; color: var(--text); cursor: default; }
+        .log-title { font-weight: bold; font-size: 10px; color: var(--text); }
         .final-ret { font-size: 12px; font-weight: 800; }
         
         .stat-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 2px; margin: 2px 0; }
@@ -81,8 +75,7 @@
         
         .alpha-highlight {
             background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-            border-radius: 3px; padding: 2px 6px;
-            display: flex; justify-content: space-between; align-items: center;
+            border-radius: 3px; padding: 2px 6px; display: flex; justify-content: space-between; align-items: center;
         }
         .alpha-val { font-size: 12px; font-weight: bold; }
 
@@ -93,15 +86,13 @@
         .up { color: var(--red) !important; } .down { color: var(--green) !important; }
         
         #mainChart { flex-grow: 1; width: 100% !important; height: 100% !important; min-height: 0; }
-        
-        .flatpickr-calendar.rangeMode { width: 560px !important; font-size: 12px; }
     </style>
 </head>
 <body>
 <div class="main-wrapper">
     <div class="sidebar">
         <div class="config-card">
-            <div class="section-title">Terminal Access</div>
+            <div class="section-title">Terminal Access 行情接入</div>
             <div class="row">
                 <div class="input-item"><label>交易对</label><input id="symbol" value="BTCUSDT"></div>
                 <div class="input-item"><label>周期</label><select id="interval"><option value="1h" selected>1h</option><option value="4h">4h</option><option value="1d">1d</option></select></div>
@@ -109,16 +100,16 @@
             <div class="row">
                 <div class="input-item"><label>审计时间跨度</label><input id="dateRange"></div>
             </div>
-            <button class="btn-fetch" onclick="fetchMarket()">📡 FETCH DATA</button>
+            <button class="btn-fetch" onclick="fetchMarket()">📡 FETCH HISTORICAL DATA</button>
             
-            <div class="section-title">Strategy Configuration</div>
+            <div class="section-title">Strategy Configuration 策略参数</div>
             <div class="row">
-                <div class="input-item"><label>最高/最低 (参考)</label>
-                    <div style="display:flex; gap:4px;">
-                        <input id="refMax" readonly style="width:50%">
-                        <input id="refMin" readonly style="width:50%">
-                    </div>
-                </div>
+                <div class="input-item"><label>起点价 (Start)</label><input id="priceStart" readonly></div>
+                <div class="input-item"><label>终点价 (End)</label><input id="priceEnd" readonly></div>
+            </div>
+            <div class="row">
+                <div class="input-item"><label>最高 (High)</label><input id="refMax" readonly></div>
+                <div class="input-item"><label>最低 (Low)</label><input id="refMin" readonly></div>
             </div>
             <div class="row">
                 <div class="input-item"><label>网格上限</label><input id="gridUpper" type="number" step="any"></div>
@@ -126,26 +117,24 @@
             </div>
             <div class="row">
                 <div class="input-item"><label>格数</label><input id="grids" type="number" value="50"></div>
-                <div class="input-item"><label>模式</label><select id="gridMode"><option value="arithmetic">等差</option><option value="geometric">等比</option></select></div>
+                <div class="input-item"><label>模式</label><select id="gridMode"><option value="arithmetic">等差 (Arithmetic)</option><option value="geometric">等比 (Geometric)</option></select></div>
             </div>
             <div class="row">
                 <div class="input-item"><label>费率(%)</label><input id="fee" type="number" value="0.1" step="0.01"></div>
                 <div class="input-item"><label>本金(USD)</label><input id="capital" type="number" value="1000"></div>
             </div>
-            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 RUN DEEP AUDIT</button>
+            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 EXECUTE DEEP AUDIT</button>
         </div>
         
         <div id="audit-data-center">
-            <div style="color:var(--text-dim); text-align:center; margin-top:50px; opacity:0.5; font-style:italic;">
-                TERMINAL IDLE...<br>PLEASE INJECT MARKET DATA
-            </div>
+            <div style="color:var(--text-dim); text-align:center; margin-top:50px; opacity:0.5; font-style:italic;">TERMINAL IDLE...<br>PLEASE INJECT MARKET DATA</div>
         </div>
     </div>
     
     <div class="chart-view">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <span style="color:var(--red); font-weight:800; letter-spacing:1px; font-size:12px;">QUANT AUDIT - NET VALUE</span>
-            <span id="data-info" style="font-size:9px; color:var(--text-dim); border:1px solid var(--border); padding:2px 6px; border-radius:10px;">SYSTEM READY</span>
+            <span id="data-info" style="font-size:9px; color:var(--text-dim); border:1px solid var(--border); padding:2px 6px; border-radius:10px;">READY</span>
         </div>
         <canvas id="mainChart"></canvas>
     </div>
@@ -156,8 +145,7 @@ let chart; let globalKlines = []; let fp;
 
 window.onload = () => {
     fp = flatpickr("#dateRange", { 
-        mode: "range", showMonths: 2, locale: { ...flatpickr.l10ns.zh, 
-        months: { shorthand: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"], longhand: ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"] } },
+        mode: "range", showMonths: 2, locale: "zh",
         dateFormat: "Y-m-d", defaultDate: [new Date().setDate(new Date().getDate() - 30), new Date()], theme: "dark" 
     });
 };
@@ -178,15 +166,27 @@ async function fetchMarket() {
             if (data.length < 1000) break;
             sTime = data[data.length - 1][0] + 1;
         }
+        
+        const startPrice = parseFloat(globalKlines[0][4]);
+        const endPrice = parseFloat(globalKlines[globalKlines.length - 1][4]);
         const high = Math.max(...globalKlines.map(k=>parseFloat(k[2])));
         const low = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
+        const amplitude = ((high - low) / low * 100).toFixed(2);
+
+        // 填充参考价格
+        document.getElementById('priceStart').value = startPrice.toFixed(2);
+        document.getElementById('priceEnd').value = endPrice.toFixed(2);
+        document.getElementById('priceEnd').style.color = endPrice >= startPrice ? 'var(--red)' : 'var(--green)';
         document.getElementById('refMax').value = high.toFixed(2);
         document.getElementById('refMin').value = low.toFixed(2);
-        document.getElementById('gridUpper').value = high;
-        document.getElementById('gridLower').value = low;
+
+        // 核心修复：自动回填网格上下限
+        document.getElementById('gridUpper').value = high.toFixed(2);
+        document.getElementById('gridLower').value = low.toFixed(2);
+
         document.getElementById('run-btn').disabled = false;
-        document.getElementById('data-info').innerText = `${symbol} | ${globalKlines.length} CANDLES`;
-    } catch(e) { alert("CONNECTION ERROR"); }
+        document.getElementById('data-info').innerText = `${symbol} | ${globalKlines.length} K线 | 振幅: ${amplitude}%`;
+    } catch(e) { alert("DATA FETCH FAILED"); }
 }
 
 function coreCalc(type, gridPrices, startPrice, feeRate, initCapital, gridDiffs) {
@@ -196,6 +196,7 @@ function coreCalc(type, gridPrices, startPrice, feeRate, initCapital, gridDiffs)
     let lActive = new Array(gridCount).fill(type === "long" || type === "neutral");
     let sActive = new Array(gridCount).fill(type === "short" || type === "neutral");
     const perUsd = initCapital / gridCount;
+
     globalKlines.forEach(k => {
         const [t, o, h, l, c] = k.map(Number);
         const isUp = c > prev;
@@ -204,14 +205,14 @@ function coreCalc(type, gridPrices, startPrice, feeRate, initCapital, gridDiffs)
             if (lActive[i] && prev > p && l <= p) { 
                 const amt = perUsd / p; const fee = perUsd * feeRate;
                 if (usd >= (perUsd + fee)) { usd -= (perUsd + fee); pos += amt; feeUsd += fee; lActive[i] = false; }
-            } else if (type !== "short" && !lActive[i] && prev < p + d && h >= p + d) { 
+            } else if (type !== "short" && !lActive[i] && prev < (p + d) && h >= (p + d)) { 
                 const amt = perUsd / p; const inc = amt * (p + d); const fee = inc * feeRate;
                 usd += (inc - fee); pos -= amt; feeUsd += fee; arbUsd += (inc - fee - perUsd); trades++; lActive[i] = true;
             }
             if (sActive[i] && prev < p && h >= p) { 
                 const amt = perUsd / p; const fee = perUsd * feeRate;
                 if (usd >= perUsd) { usd += (perUsd - fee); pos -= amt; feeUsd += fee; sActive[i] = false; }
-            } else if (type !== "long" && !sActive[i] && prev > p - d && l <= p - d) { 
+            } else if (type !== "long" && !sActive[i] && prev > (p - d) && l <= (p - d)) { 
                 const amt = perUsd / p; const cost = amt * (p - d); const fee = cost * feeRate;
                 usd -= (cost + fee); pos += amt; feeUsd += fee; arbUsd += (perUsd - cost - fee); trades++; sActive[i] = true;
             }
@@ -248,34 +249,21 @@ function runBacktest() {
 function renderUI(res, holdRet) {
     const center = document.getElementById('audit-data-center');
     const getAlpha = (ret) => (ret - holdRet);
-    
     const build = (title, d, color) => `
         <div class="log-row" style="border-left: 2px solid ${color}">
-            <div class="log-header">
-                <span class="log-title">${title}</span>
-                <span class="final-ret ${d.ret>=0?'up':'down'}">${d.ret>=0?'+':''}${d.ret.toFixed(2)}%</span>
-            </div>
+            <div class="log-header"><span class="log-title">${title}</span><span class="final-ret ${d.ret>=0?'up':'down'}">${d.ret>=0?'+':''}${d.ret.toFixed(2)}%</span></div>
             <div class="stat-grid">
-                <div class="stat-item"><span class="stat-label">配对成交</span><span class="stat-val">${d.trades}次</span></div>
-                <div class="stat-item"><span class="stat-label">网格利率</span><span class="stat-val up">+${d.arbPct.toFixed(2)}%</span></div>
+                <div class="stat-item"><span class="stat-label">成交</span><span class="stat-val">${d.trades}次</span></div>
+                <div class="stat-item"><span class="stat-label">套利</span><span class="stat-val up">+${d.arbPct.toFixed(2)}%</span></div>
                 <div class="stat-item"><span class="stat-label">手续费</span><span class="stat-val down">-${d.feePct.toFixed(2)}%</span></div>
             </div>
             <div class="alpha-highlight" style="border-color:${getAlpha(d.ret)>=0? 'rgba(56,158,13,0.3)':'rgba(245,34,45,0.3)'}">
-                <span style="font-size:8px; color:var(--text-dim); letter-spacing:0.5px;">ALPHA 相对超额</span>
+                <span style="font-size:8px; color:var(--text-dim);">ALPHA 超额收益</span>
                 <span class="alpha-val ${getAlpha(d.ret)>=0?'up':'down'}">${getAlpha(d.ret)>=0?'+':''}${getAlpha(d.ret).toFixed(2)}%</span>
             </div>
         </div>`;
-
-    center.innerHTML = build("LONG 多头网格", res.long, "var(--red)") + 
-                       build("SHORT 空头网格", res.short, "var(--green)") +
-                       build("NEUTRAL 中性网格", res.neutral, "var(--gold)") + 
-                       `<div class="log-row" style="border-left: 2px solid var(--blue); opacity:0.8; justify-content: center; gap:8px;">
-                            <div class="log-header">
-                                <span class="log-title">MARKET 基准持币</span>
-                                <span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span>
-                            </div>
-                            <div style="font-size:9px; color:var(--text-dim); text-align:center;">BENCHMARK AUDIT REFERENCE</div>
-                        </div>`;
+    center.innerHTML = build("LONG 多头网格", res.long, "var(--red)") + build("SHORT 空头网格", res.short, "var(--green)") + build("NEUTRAL 中性网格", res.neutral, "var(--gold)") + 
+        `<div class="log-row" style="border-left: 2px solid var(--blue); opacity:0.8;"><div class="log-header"><span class="log-title">HOLD 基准持币</span><span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span></div><div style="font-size:9px; color:var(--text-dim); text-align:center;">MARKET BENCHMARK</div></div>`;
 }
 
 function renderChart(res, hold) {
@@ -289,29 +277,19 @@ function renderChart(res, hold) {
                 { label: 'LONG 多头', data: res.long.history, borderColor: '#f5222d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
                 { label: 'SHORT 空头', data: res.short.history, borderColor: '#389e0d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
                 { label: 'NEUTRAL 中性', data: res.neutral.history, borderColor: '#d48806', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
-                { label: 'HOLD 基准', data: hold, borderColor: '#00f2ff', borderDash: [4,4], borderWidth: 1, pointRadius: 0 }
+                { label: 'HOLD 基准', data: hold, borderColor: '#00f2ff', borderDash: [4,4], borderWidth: 1.2, pointRadius: 0 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             scales: { 
-                x: { 
-                    /* 修复1：提亮时间轴颜色，确保清晰可见 */
-                    ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 0, maxTicksLimit: 8 }, 
-                    grid: { display: false } 
-                },
+                x: { ticks: { color: '#8b949e', font: { size: 10 }, maxTicksLimit: 8 }, grid: { display: false } },
                 y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#8b949e', font: { size: 10 } } }
             },
             plugins: { 
-                /* 修复2：恢复图例显示，加入点击显影，并使用高级圆点样式 */
-                legend: { 
-                    display: true, 
-                    position: 'top', 
-                    align: 'end',
-                    labels: { color: '#c9d1d9', usePointStyle: true, boxWidth: 6, font: { size: 11, family: 'JetBrains Mono' } } 
-                }, 
-                tooltip: { backgroundColor: '#0c1018', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10, titleFont: {size: 11}, bodyFont: {size: 11} } 
+                legend: { display: true, position: 'top', align: 'end', labels: { color: '#c9d1d9', usePointStyle: true, boxWidth: 6, font: { size: 11 } } },
+                tooltip: { backgroundColor: '#0c1018', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }
             }
         }
     });
