@@ -37,7 +37,7 @@
         <div class="card">
             <div class="row">
                 <div class="input-item"><label>币对</label><input id="symbol" value="BTCUSDC"></div>
-                <div class="input-item"><label>粒度</label><select id="interval"><option value="1h" selected>1h</option><option value="4h">4h</option><option value="1d">1d</option></select></div>
+                <div class="input-item"><label>粒度</label><select id="interval"><option value="5m">5m</option><option value="15m">15m</option><option value="1h" selected>1h</option><option value="4h">4h</option><option value="1d">1d</option></select></div>
             </div>
             <div class="row">
                 <div class="input-item"><label>开始日期</label><input id="start" type="date"></div>
@@ -67,12 +67,6 @@
         <div id="audit-data-center"></div>
     </div>
     <div class="chart-view">
-        <div class="chart-legend">
-            <div class="legend-item"><span class="legend-color" style="background: #52c41a"></span><span>Long</span></div>
-            <div class="legend-item"><span class="legend-color" style="background: #ff4d4f"></span><span>Short</span></div>
-            <div class="legend-item"><span class="legend-color" style="background: #faad14"></span><span>Neutral</span></div>
-            <div class="legend-item"><span class="legend-color" style="background: #1890ff; border-style: dashed; border-width: 1px;"></span><span>Benchmark</span></div>
-        </div>
         <canvas id="mainChart"></canvas>
     </div>
 </div>
@@ -91,17 +85,33 @@ window.onload = () => {
     document.getElementById('end').value = end.toISOString().split('T')[0];
 };
 
-// 获取币安真实K线行情
+// 分页获取币安完整K线行情（解决单次1000条限制）
 async function fetchMarket() {
     const symbol = document.getElementById('symbol').value.toUpperCase();
     const interval = document.getElementById('interval').value;
-    const sTime = new Date(document.getElementById('start').value).getTime();
+    let sTime = new Date(document.getElementById('start').value).getTime();
     const eTime = new Date(document.getElementById('end').value).setHours(23,59,59,999);
+    const limit = 1000;
+    globalKlines = [];
     
     try {
-        // 币安API最多单次返回1000根K线，满足常规回测需求
-        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${sTime}&endTime=${eTime}&limit=1000`);
-        globalKlines = await res.json();
+        // 循环分页拉取，直到数据量不足1000条或到达结束时间
+        while (true) {
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${sTime}&endTime=${eTime}&limit=${limit}`);
+            const data = await res.json();
+            
+            if (!data || data.length === 0) break;
+            
+            globalKlines = globalKlines.concat(data);
+            
+            // 如果返回数据少于限制条数，说明已经是最后一页
+            if (data.length < limit) break;
+            
+            // 更新下一次请求的起始时间为最后一条K线的时间+1
+            const lastTime = data[data.length - 1][0];
+            if (lastTime >= eTime) break;
+            sTime = lastTime + 1;
+        }
         
         if(!globalKlines.length) {
             alert("行情获取失败，请检查币对、时间区间是否正确");
@@ -131,7 +141,7 @@ async function fetchMarket() {
     }
 }
 
-// 核心网格计算引擎 - 修复后分类型处理逻辑
+// 核心网格计算引擎
 function coreCalc(type, prices, startPrice, gridDiff, perGridCapital, feeRate) {
     let usd = INIT_CAPITAL; // 初始本金
     let btc = 0; // 持仓数量（正数为多单，负数为空单）
@@ -336,7 +346,7 @@ function runBacktest() {
         `;
 }
 
-// 渲染净值图表
+// 渲染净值图表（支持图例点击显隐）
 function renderChart(longData, shortData, neutralData, benchmarkData) {
     if (chart) chart.destroy();
     
@@ -376,7 +386,26 @@ function renderChart(longData, shortData, neutralData, benchmarkData) {
                 }
             },
             plugins: {
-                legend: { display: false },
+                legend: { 
+                    display: true, // 确保图例显示
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0',
+                        font: { size: 11 },
+                        usePointStyle: true,
+                        padding: 15
+                    },
+                    onClick: function(e, legendItem, legend) {
+                        // 手动实现图例点击显隐逻辑，确保交互正常
+                        const index = legendItem.datasetIndex;
+                        const ci = legend.chart;
+                        const meta = ci.getDatasetMeta(index);
+                        
+                        // 切换隐藏状态
+                        meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+                        ci.update();
+                    }
+                },
                 tooltip: {
                     backgroundColor: '#0a0f1e',
                     titleColor: '#fff',
