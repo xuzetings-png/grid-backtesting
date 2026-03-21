@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini Grid Lab - 全视图审计终端 v5.4</title>
+    <title>Gemini Grid Lab - 全视图审计终端 v5.6</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
@@ -10,81 +10,35 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
     <style>
         :root {
-            --bg-deep: #080a0f;
-            --panel-bg: rgba(22, 27, 34, 0.8);
-            --border: rgba(255, 255, 255, 0.08);
-            --red: #f5222d;
-            --green: #389e0d;
-            --gold: #d48806;
-            --blue: #1677ff;
-            --text: #c9d1d9;
-            --text-dim: #8b949e;
+            --bg-deep: #080a0f; --panel-bg: rgba(22, 27, 34, 0.8); --border: rgba(255, 255, 255, 0.08);
+            --red: #f5222d; --green: #389e0d; --gold: #d48806; --blue: #1677ff; --text: #c9d1d9; --text-dim: #8b949e;
         }
-
         body { 
-            height: 100vh; margin: 0; overflow: hidden; 
-            font-family: 'JetBrains Mono', -apple-system, "PingFang SC", sans-serif;
+            height: 100vh; margin: 0; overflow: hidden; font-family: 'JetBrains Mono', sans-serif;
             background: var(--bg-deep); color: var(--text); font-size: 11px;
         }
-
         .main-wrapper { display: flex; height: 100vh; padding: 6px; box-sizing: border-box; gap: 6px; }
         .sidebar { width: 340px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; height: 100%; }
-        
-        .config-card { 
-            background: var(--panel-bg); padding: 8px; border-radius: 4px; 
-            border: 1px solid var(--border); flex-shrink: 0; 
-        }
-
-        .section-title { 
-            font-size: 10px; color: var(--text-dim); margin-bottom: 4px; 
-            border-bottom: 1px solid var(--border); padding-bottom: 2px;
-            font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-
+        .config-card { background: var(--panel-bg); padding: 8px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; }
+        .section-title { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 2px; font-weight: bold; text-transform: uppercase; }
         .row { display: flex; gap: 4px; margin-bottom: 3px; }
         .input-item { display: flex; flex-direction: column; flex: 1; }
         label { font-size: 9px; color: var(--text-dim); margin-bottom: 1px; transform: scale(0.9); transform-origin: left; }
-        
-        input, select { 
-            background: #000; border: 1px solid var(--border); 
-            color: #fff; padding: 0 6px; border-radius: 2px; font-size: 11px; 
-            height: 20px; transition: 0.2s;
-        }
-        input:focus { border-color: var(--red); outline: none; background: #0a0a0a; }
+        input, select { background: #000; border: 1px solid var(--border); color: #fff; padding: 0 6px; border-radius: 2px; font-size: 11px; height: 20px; }
+        input:focus { border-color: var(--red); outline: none; }
         input[readonly] { background: transparent; border: none; color: #58a6ff; font-weight: bold; }
-
         .btn-fetch { background: #1c1c1c; color: var(--red); border: 1px solid #442222; padding: 2px; border-radius: 3px; cursor: pointer; width: 100%; font-size: 9px; margin: 2px 0; }
-        .btn-run { background: var(--red); color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 11px; box-shadow: 0 2px 8px rgba(245,34,45,0.2); }
-
+        .btn-run { background: var(--red); color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 11px; }
         #audit-data-center { flex: 1; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow: hidden; }
-        
-        .log-row {
-            flex: 1; background: rgba(255,255,255,0.02); border: 1px solid var(--border);
-            border-radius: 4px; padding: 4px 8px; display: flex; flex-direction: column; 
-            justify-content: space-around; min-height: 0;
-        }
-        
+        .log-row { flex: 1; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; display: flex; flex-direction: column; justify-content: space-around; min-height: 0; }
         .log-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .log-title { font-weight: bold; font-size: 10px; color: var(--text); }
+        .log-title { font-weight: bold; font-size: 10px; }
         .final-ret { font-size: 12px; font-weight: 800; }
-        
         .stat-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 2px; margin: 2px 0; }
-        .stat-item { display: flex; flex-direction: column; }
         .stat-label { color: var(--text-dim); font-size: 8px; transform: scale(0.85); transform-origin: left; }
-        .stat-val { font-size: 10px; }
-        
-        .alpha-highlight {
-            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-            border-radius: 3px; padding: 2px 6px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .alpha-val { font-size: 12px; font-weight: bold; }
-
-        .chart-view { 
-            flex-grow: 1; background: var(--panel-bg); border-radius: 6px; 
-            border: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; 
-        }
+        .alpha-highlight { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; display: flex; justify-content: space-between; align-items: center; }
+        .chart-view { flex-grow: 1; background: var(--panel-bg); border-radius: 6px; border: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; }
         .up { color: var(--red) !important; } .down { color: var(--green) !important; }
-        
         #mainChart { flex-grow: 1; width: 100% !important; height: 100% !important; min-height: 0; }
     </style>
 </head>
@@ -95,14 +49,23 @@
             <div class="section-title">Terminal Access 行情接入</div>
             <div class="row">
                 <div class="input-item"><label>交易对</label><input id="symbol" value="BTCUSDT"></div>
-                <div class="input-item"><label>周期</label><select id="interval"><option value="1h" selected>1h</option><option value="4h">4h</option><option value="1d">1d</option></select></div>
+                <div class="input-item">
+                    <label>周期</label>
+                    <select id="interval">
+                        <option value="1m">1min</option>
+                        <option value="5m">5min</option>
+                        <option value="15m">15min</option>
+                        <option value="30m">30min</option>
+                        <option value="1h" selected>1h</option>
+                        <option value="4h">4h</option>
+                        <option value="1d">1d</option>
+                        <option value="3d">3d</option>
+                    </select>
+                </div>
             </div>
-            <div class="row">
-                <div class="input-item"><label>审计时间跨度</label><input id="dateRange"></div>
-            </div>
+            <div class="row"><div class="input-item"><label>审计时间跨度</label><input id="dateRange"></div></div>
             <button class="btn-fetch" onclick="fetchMarket()">📡 FETCH HISTORICAL DATA</button>
-            
-            <div class="section-title">Strategy Configuration 策略参数</div>
+            <div class="section-title">Strategy Configuration</div>
             <div class="row">
                 <div class="input-item"><label>起点价 (Start)</label><input id="priceStart" readonly></div>
                 <div class="input-item"><label>终点价 (End)</label><input id="priceEnd" readonly></div>
@@ -117,7 +80,7 @@
             </div>
             <div class="row">
                 <div class="input-item"><label>格数</label><input id="grids" type="number" value="50"></div>
-                <div class="input-item"><label>模式</label><select id="gridMode"><option value="arithmetic">等差 (Arithmetic)</option><option value="geometric">等比 (Geometric)</option></select></div>
+                <div class="input-item"><label>模式</label><select id="gridMode"><option value="arithmetic">等差</option><option value="geometric">等比</option></select></div>
             </div>
             <div class="row">
                 <div class="input-item"><label>费率(%)</label><input id="fee" type="number" value="0.1" step="0.01"></div>
@@ -125,12 +88,10 @@
             </div>
             <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 EXECUTE DEEP AUDIT</button>
         </div>
-        
         <div id="audit-data-center">
-            <div style="color:var(--text-dim); text-align:center; margin-top:50px; opacity:0.5; font-style:italic;">TERMINAL IDLE...<br>PLEASE INJECT MARKET DATA</div>
+            <div style="color:var(--text-dim); text-align:center; margin-top:50px; opacity:0.5; font-style:italic;">TERMINAL IDLE...</div>
         </div>
     </div>
-    
     <div class="chart-view">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <span style="color:var(--red); font-weight:800; letter-spacing:1px; font-size:12px;">QUANT AUDIT - NET VALUE</span>
@@ -142,21 +103,14 @@
 
 <script>
 let chart; let globalKlines = []; let fp;
-
-window.onload = () => {
-    fp = flatpickr("#dateRange", { 
-        mode: "range", showMonths: 2, locale: "zh",
-        dateFormat: "Y-m-d", defaultDate: [new Date().setDate(new Date().getDate() - 30), new Date()], theme: "dark" 
-    });
-};
+window.onload = () => { fp = flatpickr("#dateRange", { mode: "range", locale: "zh", dateFormat: "Y-m-d", defaultDate: [new Date().setDate(new Date().getDate() - 7), new Date()], theme: "dark" }); };
 
 async function fetchMarket() {
     const symbol = document.getElementById('symbol').value.toUpperCase();
     const dates = fp.selectedDates;
     if(dates.length < 2) return;
-    let sTime = dates[0].getTime();
-    const eTime = dates[1].setHours(23,59,59,999);
-    globalKlines = [];
+    let sTime = dates[0].getTime(); const eTime = dates[1].setHours(23,59,59,999);
+    globalKlines = []; const statusInfo = document.getElementById('data-info');
     try {
         while (true) {
             const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${document.getElementById('interval').value}&startTime=${sTime}&endTime=${eTime}&limit=1000`);
@@ -165,124 +119,88 @@ async function fetchMarket() {
             globalKlines = globalKlines.concat(data);
             if (data.length < 1000) break;
             sTime = data[data.length - 1][0] + 1;
+            statusInfo.innerText = `SYNCING... (${globalKlines.length} BARS)`;
         }
-        
-        const startPrice = parseFloat(globalKlines[0][4]);
-        const endPrice = parseFloat(globalKlines[globalKlines.length - 1][4]);
-        const high = Math.max(...globalKlines.map(k=>parseFloat(k[2])));
-        const low = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
-        const amplitude = ((high - low) / low * 100).toFixed(2);
-
-        // 填充参考价格
+        const startPrice = parseFloat(globalKlines[0][4]); const endPrice = parseFloat(globalKlines[globalKlines.length - 1][4]);
+        const high = Math.max(...globalKlines.map(k=>parseFloat(k[2]))); const low = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
         document.getElementById('priceStart').value = startPrice.toFixed(2);
         document.getElementById('priceEnd').value = endPrice.toFixed(2);
         document.getElementById('priceEnd').style.color = endPrice >= startPrice ? 'var(--red)' : 'var(--green)';
-        document.getElementById('refMax').value = high.toFixed(2);
-        document.getElementById('refMin').value = low.toFixed(2);
-
-        // 核心修复：自动回填网格上下限
-        document.getElementById('gridUpper').value = high.toFixed(2);
-        document.getElementById('gridLower').value = low.toFixed(2);
-
+        document.getElementById('refMax').value = high.toFixed(2); document.getElementById('refMin').value = low.toFixed(2);
+        document.getElementById('gridUpper').value = high.toFixed(2); document.getElementById('gridLower').value = low.toFixed(2);
         document.getElementById('run-btn').disabled = false;
-        document.getElementById('data-info').innerText = `${symbol} | ${globalKlines.length} K线 | 振幅: ${amplitude}%`;
-    } catch(e) { alert("DATA FETCH FAILED"); }
+        statusInfo.innerText = `${symbol} | ${globalKlines.length} K线 | 振幅: ${((high-low)/low*100).toFixed(2)}%`;
+    } catch(e) { statusInfo.innerText = "ERROR"; alert("FETCH FAILED"); }
 }
 
 function coreCalc(type, gridPrices, startPrice, feeRate, initCapital, gridDiffs) {
-    let usd = initCapital; let pos = 0; let trades = 0; let feeUsd = 0; let arbUsd = 0;
-    let history = []; let prev = startPrice;
-    const gridCount = gridPrices.length;
-    let lActive = new Array(gridCount).fill(type === "long" || type === "neutral");
-    let sActive = new Array(gridCount).fill(type === "short" || type === "neutral");
-    const perUsd = initCapital / gridCount;
-
+    let usd = initCapital, pos = 0, trades = 0, feeUsd = 0, arbUsd = 0, history = [], prev = startPrice;
+    const gridCount = gridPrices.length, perUsd = initCapital / gridCount;
+    let lActive = new Array(gridCount).fill(type === "long" || type === "neutral"), sActive = new Array(gridCount).fill(type === "short" || type === "neutral");
     globalKlines.forEach(k => {
-        const [t, o, h, l, c] = k.map(Number);
-        const isUp = c > prev;
+        const [t, o, h, l, c] = k.map(Number); const isUp = c > prev;
         const exec = (i) => {
-            const p = gridPrices[i]; const d = gridDiffs[i];
+            const p = gridPrices[i], d = gridDiffs[i];
             if (lActive[i] && prev > p && l <= p) { 
-                const amt = perUsd / p; const fee = perUsd * feeRate;
-                if (usd >= (perUsd + fee)) { usd -= (perUsd + fee); pos += amt; feeUsd += fee; lActive[i] = false; }
-            } else if (type !== "short" && !lActive[i] && prev < (p + d) && h >= (p + d)) { 
-                const amt = perUsd / p; const inc = amt * (p + d); const fee = inc * feeRate;
-                usd += (inc - fee); pos -= amt; feeUsd += fee; arbUsd += (inc - fee - perUsd); trades++; lActive[i] = true;
+                const amt = perUsd/p, fee = perUsd*feeRate; if(usd >= (perUsd+fee)){ usd-=(perUsd+fee); pos+=amt; feeUsd+=fee; lActive[i]=false; }
+            } else if (type!=="short" && !lActive[i] && prev<(p+d) && h>=(p+d)) {
+                const amt=perUsd/p, inc=amt*(p+d), fee=inc*feeRate; usd+=(inc-fee); pos-=amt; feeUsd+=fee; arbUsd+=(inc-fee-perUsd); trades++; lActive[i]=true;
             }
-            if (sActive[i] && prev < p && h >= p) { 
-                const amt = perUsd / p; const fee = perUsd * feeRate;
-                if (usd >= perUsd) { usd += (perUsd - fee); pos -= amt; feeUsd += fee; sActive[i] = false; }
-            } else if (type !== "long" && !sActive[i] && prev > (p - d) && l <= (p - d)) { 
-                const amt = perUsd / p; const cost = amt * (p - d); const fee = cost * feeRate;
-                usd -= (cost + fee); pos += amt; feeUsd += fee; arbUsd += (perUsd - cost - fee); trades++; sActive[i] = true;
+            if (sActive[i] && prev<p && h>=p) {
+                const amt=perUsd/p, fee=perUsd*feeRate; if(usd>=perUsd){ usd+=(perUsd-fee); pos-=amt; feeUsd+=fee; sActive[i]=false; }
+            } else if (type!=="long" && !sActive[i] && prev>(p-d) && l<=(p-d)) {
+                const amt=perUsd/p, cost=amt*(p-d), fee=cost*feeRate; usd-=(cost+fee); pos+=amt; feeUsd+=fee; arbUsd+=(perUsd-cost-fee); trades++; sActive[i]=true;
             }
         };
-        if (isUp) for(let i=0; i<gridCount; i++) exec(i); else for(let i=gridCount-1; i>=0; i--) exec(i);
+        if(isUp) for(let i=0;i<gridCount;i++) exec(i); else for(let i=gridCount-1;i>=0;i--) exec(i);
         history.push(usd + pos * c); prev = c;
     });
     return { history, trades, feePct: (feeUsd/initCapital)*100, arbPct: (arbUsd/initCapital)*100, ret: ((history[history.length-1]/initCapital)-1)*100 };
 }
 
 function runBacktest() {
-    const min = parseFloat(document.getElementById('gridLower').value);
-    const max = parseFloat(document.getElementById('gridUpper').value);
-    const count = parseInt(document.getElementById('grids').value);
-    const fee = parseFloat(document.getElementById('fee').value) / 100;
-    const capital = parseFloat(document.getElementById('capital').value);
-    const mode = document.getElementById('gridMode').value;
-    const start = parseFloat(globalKlines[0][4]);
-    let prices = []; let diffs = [];
-    if (mode === "arithmetic") {
-        const step = (max - min) / (count - 1);
-        for(let i=0; i<count; i++) { prices.push(min + i * step); diffs.push(step); }
-    } else {
-        const ratio = Math.pow(max / min, 1 / (count - 1));
-        for(let i=0; i<count; i++) { let p = min * Math.pow(ratio, i); prices.push(p); diffs.push(p * ratio - p); }
-    }
-    const res = { long: coreCalc("long", prices, start, fee, capital, diffs), short: coreCalc("short", prices, start, fee, capital, diffs), neutral: coreCalc("neutral", prices, start, fee, capital, diffs) };
-    const holdHistory = globalKlines.map(k => (capital * (1-fee) / start) * parseFloat(k[4]));
-    const holdRet = ((holdHistory[holdHistory.length-1]/capital)-1)*100;
-    renderChart(res, holdHistory);
-    renderUI(res, holdRet);
+    const min=parseFloat(document.getElementById('gridLower').value), max=parseFloat(document.getElementById('gridUpper').value), count=parseInt(document.getElementById('grids').value);
+    const fee=parseFloat(document.getElementById('fee').value)/100, capital=parseFloat(document.getElementById('capital').value), mode=document.getElementById('gridMode').value, start=parseFloat(globalKlines[0][4]);
+    let prices = [], diffs = [];
+    if (mode==="arithmetic") { const step=(max-min)/(count-1); for(let i=0;i<count;i++){ prices.push(min+i*step); diffs.push(step); } }
+    else { const ratio=Math.pow(max/min,1/(count-1)); for(let i=0;i<count;i++){ let p=min*Math.pow(ratio,i); prices.push(p); diffs.push(p*ratio-p); } }
+    const res = { long: coreCalc("long",prices,start,fee,capital,diffs), short: coreCalc("short",prices,start,fee,capital,diffs), neutral: coreCalc("neutral",prices,start,fee,capital,diffs) };
+    const holdHistory = globalKlines.map(k=>(capital*(1-fee)/start)*parseFloat(k[4])), holdRet = ((holdHistory[holdHistory.length-1]/capital)-1)*100;
+    renderChart(res, holdHistory); renderUI(res, holdRet);
 }
 
 function renderUI(res, holdRet) {
-    const center = document.getElementById('audit-data-center');
-    const getAlpha = (ret) => (ret - holdRet);
+    const center = document.getElementById('audit-data-center'), getAlpha = (ret) => (ret-holdRet);
     const build = (title, d, color) => `
-        <div class="log-row" style="border-left: 2px solid ${color}">
+        <div class="log-row" style="border-left:2px solid ${color}">
             <div class="log-header"><span class="log-title">${title}</span><span class="final-ret ${d.ret>=0?'up':'down'}">${d.ret>=0?'+':''}${d.ret.toFixed(2)}%</span></div>
             <div class="stat-grid">
-                <div class="stat-item"><span class="stat-label">成交</span><span class="stat-val">${d.trades}次</span></div>
+                <div class="stat-item"><span class="stat-label">成交</span><span class="stat-val">${d.trades}</span></div>
                 <div class="stat-item"><span class="stat-label">套利</span><span class="stat-val up">+${d.arbPct.toFixed(2)}%</span></div>
                 <div class="stat-item"><span class="stat-label">手续费</span><span class="stat-val down">-${d.feePct.toFixed(2)}%</span></div>
             </div>
-            <div class="alpha-highlight" style="border-color:${getAlpha(d.ret)>=0? 'rgba(56,158,13,0.3)':'rgba(245,34,45,0.3)'}">
-                <span style="font-size:8px; color:var(--text-dim);">ALPHA 超额收益</span>
-                <span class="alpha-val ${getAlpha(d.ret)>=0?'up':'down'}">${getAlpha(d.ret)>=0?'+':''}${getAlpha(d.ret).toFixed(2)}%</span>
-            </div>
+            <div class="alpha-highlight" style="border-color:${getAlpha(d.ret)>=0?'rgba(56,158,13,0.3)':'rgba(245,34,45,0.3)'}"><span style="font-size:8px;color:var(--text-dim)">ALPHA</span><span class="alpha-val ${getAlpha(d.ret)>=0?'up':'down'}">${getAlpha(d.ret)>=0?'+':''}${getAlpha(d.ret).toFixed(2)}%</span></div>
         </div>`;
-    center.innerHTML = build("LONG 多头网格", res.long, "var(--red)") + build("SHORT 空头网格", res.short, "var(--green)") + build("NEUTRAL 中性网格", res.neutral, "var(--gold)") + 
-        `<div class="log-row" style="border-left: 2px solid var(--blue); opacity:0.8;"><div class="log-header"><span class="log-title">HOLD 基准持币</span><span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span></div><div style="font-size:9px; color:var(--text-dim); text-align:center;">MARKET BENCHMARK</div></div>`;
+    center.innerHTML = build("LONG 多头网格",res.long,"var(--red)") + build("SHORT 空头网格",res.short,"var(--green)") + build("NEUTRAL 中性网格",res.neutral,"var(--gold)") + 
+        `<div class="log-row" style="border-left:2px solid var(--blue);opacity:0.8;"><div class="log-header"><span class="log-title">HOLD 基准持币</span><span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span></div></div>`;
 }
 
 function renderChart(res, hold) {
     if (chart) chart.destroy();
-    const timeLabels = globalKlines.map(k => { const d = new Date(k[0]); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:00`; });
+    const timeLabels = globalKlines.map(k => { 
+        const d = new Date(k[0]), iv = document.getElementById('interval').value;
+        if(iv==='1d'||iv==='3d') return `${d.getMonth()+1}/${d.getDate()}`;
+        return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()<10?'0':''}${d.getMinutes()}`;
+    });
     chart = new Chart(document.getElementById('mainChart'), {
-        type: 'line',
-        data: {
-            labels: timeLabels,
-            datasets: [
-                { label: 'LONG 多头', data: res.long.history, borderColor: '#f5222d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
-                { label: 'SHORT 空头', data: res.short.history, borderColor: '#389e0d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
-                { label: 'NEUTRAL 中性', data: res.neutral.history, borderColor: '#d48806', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
-                { label: 'HOLD 基准', data: hold, borderColor: '#00f2ff', borderDash: [4,4], borderWidth: 1.2, pointRadius: 0 }
-            ]
-        },
+        type: 'line', data: { labels: timeLabels, datasets: [
+            { label: 'LONG', data: res.long.history, borderColor: '#f5222d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
+            { label: 'SHORT', data: res.short.history, borderColor: '#389e0d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
+            { label: 'NEUTRAL', data: res.neutral.history, borderColor: '#d48806', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
+            { label: 'HOLD', data: hold, borderColor: '#00f2ff', borderDash: [4,4], borderWidth: 1.2, pointRadius: 0 }
+        ]},
         options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
             scales: { 
                 x: { ticks: { color: '#8b949e', font: { size: 10 }, maxTicksLimit: 8 }, grid: { display: false } },
                 y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#8b949e', font: { size: 10 } } }
