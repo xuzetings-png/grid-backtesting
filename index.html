@@ -43,6 +43,29 @@
         /* 滚动条样式 */
         #audit-data-center::-webkit-scrollbar { width: 4px; }
         #audit-data-center::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+        
+        /* 策略开关样式 */
+        .strategy-toggle-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+        .strategy-toggle { 
+            display: flex; align-items: center; gap: 4px; 
+            padding: 2px 6px; border-radius: 3px; 
+            font-size: 9px; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .strategy-toggle:hover { background: rgba(255,255,255,0.05); }
+        .strategy-toggle input { margin: 0; }
+        .strategy-long-pos { background: rgba(245, 34, 45, 0.15); border: 1px solid rgba(245, 34, 45, 0.3); }
+        .strategy-long-nopos { background: rgba(255, 120, 117, 0.15); border: 1px solid rgba(255, 120, 117, 0.3); }
+        .strategy-short-pos { background: rgba(56, 158, 13, 0.15); border: 1px solid rgba(56, 158, 13, 0.3); }
+        .strategy-short-nopos { background: rgba(146, 84, 222, 0.15); border: 1px solid rgba(146, 84, 222, 0.3); }
+        .strategy-neutral { background: rgba(212, 136, 6, 0.15); border: 1px solid rgba(212, 136, 6, 0.3); }
+        
+        .strategy-count {
+            font-size: 9px; color: var(--text-dim); 
+            margin-top: 4px; padding: 2px 6px; 
+            border-radius: 3px; background: rgba(0,0,0,0.3);
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -85,7 +108,33 @@
                 <div class="input-item"><label>费率(%)</label><input id="fee" type="number" value="0.001" step="0.001"></div>
                 <div class="input-item"><label>本金(USD)</label><input id="capital" type="number" value="1000"></div>
             </div>
-            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 EXECUTE DEEP AUDIT (6 STRATS)</button>
+            
+            <div class="section-title">Strategy Selection (6 STRATS)</div>
+            <div class="strategy-toggle-container">
+                <label class="strategy-toggle strategy-long-pos">
+                    <input type="checkbox" id="toggle-long-pos" checked>
+                    LONG (Pos)
+                </label>
+                <label class="strategy-toggle strategy-long-nopos">
+                    <input type="checkbox" id="toggle-long-nopos" checked>
+                    LONG (NoPos)
+                </label>
+                <label class="strategy-toggle strategy-short-pos">
+                    <input type="checkbox" id="toggle-short-pos" checked>
+                    SHORT (Pos)
+                </label>
+                <label class="strategy-toggle strategy-short-nopos">
+                    <input type="checkbox" id="toggle-short-nopos" checked>
+                    SHORT (NoPos)
+                </label>
+                <label class="strategy-toggle strategy-neutral">
+                    <input type="checkbox" id="toggle-neutral" checked>
+                    NEUTRAL
+                </label>
+            </div>
+            <div class="strategy-count" id="strategy-count">已选择: <span id="selected-count">5</span> 个策略</div>
+            
+            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 EXECUTE DEEP AUDIT</button>
         </div>
         <div id="audit-data-center"></div>
     </div>
@@ -105,7 +154,18 @@ window.onload = () => {
     const start = new Date();
     start.setDate(start.getDate() - 3);
     fp = flatpickr("#dateRange", { mode: "range", locale: "zh", dateFormat: "Y-m-d", defaultDate: [start, end], theme: "dark" }); 
+    
+    // 添加策略开关事件监听
+    document.querySelectorAll('.strategy-toggle input').forEach(checkbox => {
+        checkbox.addEventListener('change', updateStrategyCount);
+    });
 };
+
+function updateStrategyCount() {
+    const selectedCount = document.querySelectorAll('.strategy-toggle input:checked').length;
+    document.getElementById('selected-count').textContent = selectedCount;
+    document.getElementById('run-btn').disabled = (selectedCount === 0) || globalKlines.length === 0;
+}
 
 async function fetchMarket() {
     const symbol = document.getElementById('symbol').value.toUpperCase();
@@ -143,7 +203,7 @@ async function fetchMarket() {
         document.getElementById('gridUpper').value = high.toFixed(2); 
         document.getElementById('gridLower').value = low.toFixed(2);
         
-        document.getElementById('run-btn').disabled = false;
+        document.getElementById('run-btn').disabled = document.querySelectorAll('.strategy-toggle input:checked').length === 0;
         statusInfo.innerText = `${symbol} | ${globalKlines.length} K 线 | 振幅：${((high-low)/low*100).toFixed(2)}%`;
     } catch(e) { 
         console.error(e);
@@ -307,24 +367,39 @@ function runBacktest() {
         for(let i=0;i<count;i++){ let p=min*Math.pow(ratio,i); prices.push(p); diffs.push(p*ratio-p); } 
     }
     
-    const strategies = [
-        { name: "LONG (Pos)", type: "long", mode: "position", color: "#f5222d" },
-        { name: "LONG (NoPos)", type: "long", mode: "no_position", color: "#ff7875" },
-        { name: "SHORT (Pos)", type: "short", mode: "position", color: "#389e0d" },
-        // 【修改】SHORT (NoPos) 改为紫色，以便区分
-        { name: "SHORT (NoPos)", type: "short", mode: "no_position", color: "#9254de" }, 
-        { name: "NEUTRAL", type: "neutral", mode: "no_position", color: "#d48806" }, 
-    ];
-
+    // 获取用户选择的策略
+    const selectedStrategies = [];
+    
+    if (document.getElementById('toggle-long-pos').checked) {
+        selectedStrategies.push({ name: "LONG (Pos)", type: "long", mode: "position", color: "#f5222d" });
+    }
+    if (document.getElementById('toggle-long-nopos').checked) {
+        selectedStrategies.push({ name: "LONG (NoPos)", type: "long", mode: "no_position", color: "#ff7875" });
+    }
+    if (document.getElementById('toggle-short-pos').checked) {
+        selectedStrategies.push({ name: "SHORT (Pos)", type: "short", mode: "position", color: "#389e0d" });
+    }
+    if (document.getElementById('toggle-short-nopos').checked) {
+        selectedStrategies.push({ name: "SHORT (NoPos)", type: "short", mode: "no_position", color: "#9254de" });
+    }
+    if (document.getElementById('toggle-neutral').checked) {
+        selectedStrategies.push({ name: "NEUTRAL", type: "neutral", mode: "no_position", color: "#d48806" });
+    }
+    
+    if (selectedStrategies.length === 0) {
+        alert("请至少选择一个策略进行回测");
+        return;
+    }
+    
     const results = {};
-    strategies.forEach(s => {
+    selectedStrategies.forEach(s => {
         results[s.name] = coreCalc(s.type, s.mode, prices, start, fee, capital, diffs);
     });
 
     const holdHistory = globalKlines.map(k => capital * (parseFloat(k[4]) / start));
     const holdRet = ((holdHistory[holdHistory.length-1]/capital)-1)*100;
     
-    renderChart(results, holdHistory); 
+    renderChart(selectedStrategies, results, holdHistory); 
     renderUI(results, holdRet);
 }
 
@@ -360,7 +435,7 @@ function renderUI(results, holdRet) {
     center.innerHTML = html;
 }
 
-function renderChart(results, hold) {
+function renderChart(strategies, results, hold) {
     if (chart) chart.destroy();
     const timeLabels = globalKlines.map(k => { 
         const d = new Date(k[0]), iv = document.getElementById('interval').value;
@@ -376,17 +451,19 @@ function renderChart(results, hold) {
         "NEUTRAL": "#d48806"
     };
 
-    for (const [name, data] of Object.entries(results)) {
+    // 只添加选中的策略
+    strategies.forEach(s => {
+        const data = results[s.name];
         datasets.push({
-            label: name,
+            label: s.name,
             data: data.history,
-            borderColor: colors[name],
+            borderColor: colors[s.name],
             borderWidth: 1.5,
             pointRadius: 0,
             tension: 0.1,
             hidden: false 
         });
-    }
+    });
     
     datasets.push({
         label: 'HOLD',
