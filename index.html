@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini Grid Lab - 全视图审计终端 v6.1</title>
+    <title>Gemini Grid Lab - 全视图审计终端 v6.2</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
@@ -30,7 +30,7 @@
         .btn-run { background: var(--red); color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 11px; }
         #audit-data-center { flex: 1; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; }
         .log-row { flex: 1; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; display: flex; flex-direction: column; justify-content: space-around; min-height: 60px; }
-        .log-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .log-header { display: flex; justify-content:space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .log-title { font-weight: bold; font-size: 10px; }
         .final-ret { font-size: 12px; font-weight: 800; }
         .stat-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 2px; margin: 2px 0; }
@@ -154,83 +154,55 @@ async function fetchMarket() {
 
 /**
  * 核心计算引擎
- * @param {string} type - 'long', 'short', 'neutral'
- * @param {string} mode - 'position' (有底仓), 'no_position' (无底仓)
- * @param {array} gridPrices - 网格价格数组
- * @param {number} startPrice - 起始价格
- * @param {number} feeRate - 手续费率
- * @param {number} initCapital - 初始资金
- * @param {array} gridDiffs - 网格间距数组
  */
 function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, gridDiffs) {
     let usd = initCapital, pos = 0, trades = 0, feeUsd = 0, arbUsd = 0, history = [], prev = startPrice;
     const gridCount = gridPrices.length;
-    const perUsd = initCapital / gridCount; // 每格分配资金
+    const perUsd = initCapital / gridCount; 
     
-    // 状态数组
     let lActive = new Array(gridCount).fill(true);
     let sActive = new Array(gridCount).fill(true);
 
-    // --- 【修复】初始建仓逻辑：按市价建仓，确保起点净值=1000 ---
+    // --- 初始建仓逻辑：按市价建仓，确保起点净值=1000 ---
     if (mode === 'position') {
-        // 1. 确定起始价格在网格中的位置索引
         let startIndex = 0;
-        // 寻找 startPrice 位于哪个区间 [grid[i], grid[i+1]]
         for(let i=0; i<gridCount-1; i++) {
             if (startPrice >= gridPrices[i] && startPrice <= gridPrices[i+1]) {
                 startIndex = i;
                 break;
             }
         }
-        // 边界处理
         if (startPrice < gridPrices[0]) startIndex = -1; 
         if (startPrice > gridPrices[gridCount-1]) startIndex = gridCount - 1;
 
         if (type === 'long') {
-            // Long 有底仓：价格越低仓位越重。
-            // 在 startPrice 之下的所有格子都应该处于“已买入”状态。
-            // 也就是 grid[0] ... grid[startIndex] 都是持有的。
             let targetGridCount = startIndex + 1;
             if (targetGridCount < 0) targetGridCount = 0;
             if (targetGridCount > gridCount) targetGridCount = gridCount;
 
-            // 按市价计算初始仓位
             const investUsd = targetGridCount * perUsd;
             if (investUsd > 0) {
                 pos = investUsd / startPrice;
                 usd = initCapital - investUsd;
-                // 扣除开仓手续费 (简化处理，假设一次性扣除)
                 const openFee = investUsd * feeRate;
                 usd -= openFee; 
                 feeUsd += openFee;
             }
-
-            // 初始化状态：下方的格子标记为 false (已买入，等待卖出)
             for (let i = 0; i <= startIndex; i++) lActive[i] = false;
 
         } else if (type === 'short') {
-            // Short 有底仓：价格越高仓位越重（空单）。
-            // 在 startPrice 之上的所有格子都应该处于“已开空”状态。
-            // 也就是 grid[startIndex+1] ... grid[end] 都是持有的空单。
             let targetGridCount = gridCount - 1 - startIndex;
             if (targetGridCount < 0) targetGridCount = 0;
             
             const investUsd = targetGridCount * perUsd;
             if (investUsd > 0) {
-                pos = -(investUsd / startPrice); // 空单 pos 为负
-                usd = initCapital + investUsd; // 开空获得 USDT
-                // 扣除开仓手续费
+                pos = -(investUsd / startPrice); 
+                usd = initCapital + investUsd; 
                 const openFee = investUsd * feeRate;
                 usd -= openFee;
                 feeUsd += openFee;
             }
-
-            // 初始化状态：上方的格子标记为 false (已开空，等待平仓)
             for (let i = startIndex + 1; i < gridCount; i++) sActive[i] = false;
-
-        } else if (type === 'neutral') {
-             // 中性网格通常定义为无底仓，如果强行 Position，这里暂不处理或视为 NoPos
-             // 保持 usd=initCapital, pos=0
         }
     }
 
@@ -241,9 +213,7 @@ function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, grid
         const exec = (i) => {
             const p = gridPrices[i], d = gridDiffs[i];
             
-            // === LONG 逻辑 ===
             if (type === 'long') {
-                // 买入：价格下穿网格线
                 if (lActive[i] && l <= p && prev > p) {
                     const cost = perUsd; 
                     const fee = cost * feeRate;
@@ -251,12 +221,7 @@ function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, grid
                         usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false;
                     }
                 }
-                // 卖出：价格上穿 (网格线 + 间距)
                 else if (!lActive[i] && h >= (p + d) && prev < (p + d)) {
-                    // 计算卖出量：这里简化为每格对应的币量。
-                    // 严谨做法应记录每格买入的具体币量。
-                    // 近似做法：假设每格投入 perUsd，则卖出 perUsd/p 个币 (基于当前网格价 p 的近似)
-                    // 更好的近似：卖出 (perUsd / p) 个币。
                     const sellAmt = perUsd / p; 
                     const income = sellAmt * (p + d);
                     const fee = income * feeRate;
@@ -266,15 +231,12 @@ function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, grid
                 }
             }
             
-            // === SHORT 逻辑 ===
             if (type === 'short') {
-                // 开空：价格上穿网格线
                 if (sActive[i] && h >= p && prev < p) {
                     const val = perUsd;
                     const fee = val * feeRate;
                     usd += (val - fee); pos -= (val / p); feeUsd += fee; sActive[i] = false;
                 }
-                // 平空：价格下穿 (网格线 - 间距)
                 else if (!sActive[i] && l <= (p - d) && prev > (p - d)) {
                     const buyAmt = perUsd / p;
                     const cost = buyAmt * (p - d);
@@ -285,11 +247,8 @@ function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, grid
                 }
             }
 
-            // === NEUTRAL 逻辑 (无底仓) ===
             if (type === 'neutral') {
-                // 下半区 (做多部分): 只有价格 < startPrice 的格子才生效
                 if (p < startPrice) {
-                     // 买入
                     if (lActive[i] && l <= p && prev > p) {
                         const cost = perUsd; 
                         const fee = cost * feeRate;
@@ -297,7 +256,6 @@ function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, grid
                             usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false;
                         }
                     }
-                    // 卖出
                     else if (!lActive[i] && h >= (p + d) && prev < (p + d)) {
                         const sellAmt = perUsd / p;
                         const income = sellAmt * (p + d);
@@ -307,15 +265,12 @@ function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, grid
                         trades++; lActive[i] = true;
                     }
                 } 
-                // 上半区 (做空部分): 只有价格 > startPrice 的格子才生效
                 else if (p > startPrice) {
-                    // 开空
                     if (sActive[i] && h >= p && prev < p) {
                         const val = perUsd;
                         const fee = val * feeRate;
                         usd += (val - fee); pos -= (val / p); feeUsd += fee; sActive[i] = false;
                     }
-                    // 平空
                     else if (!sActive[i] && l <= (p - d) && prev > (p - d)) {
                         const buyAmt = perUsd / p;
                         const cost = buyAmt * (p - d);
@@ -352,12 +307,12 @@ function runBacktest() {
         for(let i=0;i<count;i++){ let p=min*Math.pow(ratio,i); prices.push(p); diffs.push(p*ratio-p); } 
     }
     
-    // --- 执行 6 种策略计算 ---
     const strategies = [
         { name: "LONG (Pos)", type: "long", mode: "position", color: "#f5222d" },
         { name: "LONG (NoPos)", type: "long", mode: "no_position", color: "#ff7875" },
         { name: "SHORT (Pos)", type: "short", mode: "position", color: "#389e0d" },
-        { name: "SHORT (NoPos)", type: "short", mode: "no_position", color: "#73d13d" },
+        // 【修改】SHORT (NoPos) 改为紫色，以便区分
+        { name: "SHORT (NoPos)", type: "short", mode: "no_position", color: "#9254de" }, 
         { name: "NEUTRAL", type: "neutral", mode: "no_position", color: "#d48806" }, 
     ];
 
@@ -366,7 +321,6 @@ function runBacktest() {
         results[s.name] = coreCalc(s.type, s.mode, prices, start, fee, capital, diffs);
     });
 
-    // Hold 曲线
     const holdHistory = globalKlines.map(k => capital * (parseFloat(k[4]) / start));
     const holdRet = ((holdHistory[holdHistory.length-1]/capital)-1)*100;
     
@@ -379,9 +333,10 @@ function renderUI(results, holdRet) {
     const getAlpha = (ret) => (ret-holdRet);
     
     let html = '';
+    // 【修改】同步更新 UI 颜色映射
     const strategyColors = {
         "LONG (Pos)": "#f5222d", "LONG (NoPos)": "#ff7875",
-        "SHORT (Pos)": "#389e0d", "SHORT (NoPos)": "#73d13d",
+        "SHORT (Pos)": "#389e0d", "SHORT (NoPos)": "#9254de",
         "NEUTRAL": "#d48806"
     };
 
@@ -414,9 +369,10 @@ function renderChart(results, hold) {
     });
     
     const datasets = [];
+    // 【修改】同步更新图表颜色映射
     const colors = {
         "LONG (Pos)": "#f5222d", "LONG (NoPos)": "#ff7875",
-        "SHORT (Pos)": "#389e0d", "SHORT (NoPos)": "#73d13d",
+        "SHORT (Pos)": "#389e0d", "SHORT (NoPos)": "#9254de",
         "NEUTRAL": "#d48806"
     };
 
