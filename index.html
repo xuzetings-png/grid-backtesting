@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini Grid Lab - 全视图审计终端 v5.6</title>
+    <title>Gemini Grid Lab - 全视图审计终端 v5.7</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
@@ -13,10 +13,7 @@
             --bg-deep: #080a0f; --panel-bg: rgba(22, 27, 34, 0.8); --border: rgba(255, 255, 255, 0.08);
             --red: #f5222d; --green: #389e0d; --gold: #d48806; --blue: #1677ff; --text: #c9d1d9; --text-dim: #8b949e;
         }
-        body { 
-            height: 100vh; margin: 0; overflow: hidden; font-family: 'JetBrains Mono', sans-serif;
-            background: var(--bg-deep); color: var(--text); font-size: 11px;
-        }
+        body { height: 100vh; margin: 0; overflow: hidden; font-family: 'JetBrains Mono', sans-serif; background: var(--bg-deep); color: var(--text); font-size: 11px; }
         .main-wrapper { display: flex; height: 100vh; padding: 6px; box-sizing: border-box; gap: 6px; }
         .sidebar { width: 340px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; height: 100%; }
         .config-card { background: var(--panel-bg); padding: 8px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; }
@@ -52,14 +49,9 @@
                 <div class="input-item">
                     <label>周期</label>
                     <select id="interval">
-                        <option value="1m">1min</option>
-                        <option value="5m">5min</option>
-                        <option value="15m">15min</option>
-                        <option value="30m">30min</option>
-                        <option value="1h" selected>1h</option>
-                        <option value="4h">4h</option>
-                        <option value="1d">1d</option>
-                        <option value="3d">3d</option>
+                        <option value="1m">1min</option><option value="5m">5min</option><option value="15m">15min</option>
+                        <option value="30m">30min</option><option value="1h" selected>1h</option><option value="4h">4h</option>
+                        <option value="1d">1d</option><option value="3d">3d</option>
                     </select>
                 </div>
             </div>
@@ -83,14 +75,12 @@
                 <div class="input-item"><label>模式</label><select id="gridMode"><option value="arithmetic">等差</option><option value="geometric">等比</option></select></div>
             </div>
             <div class="row">
-                <div class="input-item"><label>费率(%)</label><input id="fee" type="number" value="0.1" step="0.01"></div>
+                <div class="input-item"><label>费率(%)</label><input id="fee" type="number" value="0" step="0.01"></div>
                 <div class="input-item"><label>本金(USD)</label><input id="capital" type="number" value="1000"></div>
             </div>
             <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 EXECUTE DEEP AUDIT</button>
         </div>
-        <div id="audit-data-center">
-            <div style="color:var(--text-dim); text-align:center; margin-top:50px; opacity:0.5; font-style:italic;">TERMINAL IDLE...</div>
-        </div>
+        <div id="audit-data-center"></div>
     </div>
     <div class="chart-view">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -107,25 +97,21 @@ window.onload = () => { fp = flatpickr("#dateRange", { mode: "range", locale: "z
 
 async function fetchMarket() {
     const symbol = document.getElementById('symbol').value.toUpperCase();
-    const dates = fp.selectedDates;
-    if(dates.length < 2) return;
+    const dates = fp.selectedDates; if(dates.length < 2) return;
     let sTime = dates[0].getTime(); const eTime = dates[1].setHours(23,59,59,999);
     globalKlines = []; const statusInfo = document.getElementById('data-info');
     try {
         while (true) {
             const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${document.getElementById('interval').value}&startTime=${sTime}&endTime=${eTime}&limit=1000`);
-            const data = await res.json();
-            if (!data || data.length === 0) break;
-            globalKlines = globalKlines.concat(data);
-            if (data.length < 1000) break;
+            const data = await res.json(); if (!data || data.length === 0) break;
+            globalKlines = globalKlines.concat(data); if (data.length < 1000) break;
             sTime = data[data.length - 1][0] + 1;
             statusInfo.innerText = `SYNCING... (${globalKlines.length} BARS)`;
         }
-        const startPrice = parseFloat(globalKlines[0][4]); const endPrice = parseFloat(globalKlines[globalKlines.length - 1][4]);
-        const high = Math.max(...globalKlines.map(k=>parseFloat(k[2]))); const low = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
+        const startPrice = parseFloat(globalKlines[0][4]), endPrice = parseFloat(globalKlines[globalKlines.length - 1][4]);
+        const high = Math.max(...globalKlines.map(k=>parseFloat(k[2]))), low = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
         document.getElementById('priceStart').value = startPrice.toFixed(2);
         document.getElementById('priceEnd').value = endPrice.toFixed(2);
-        document.getElementById('priceEnd').style.color = endPrice >= startPrice ? 'var(--red)' : 'var(--green)';
         document.getElementById('refMax').value = high.toFixed(2); document.getElementById('refMin').value = low.toFixed(2);
         document.getElementById('gridUpper').value = high.toFixed(2); document.getElementById('gridLower').value = low.toFixed(2);
         document.getElementById('run-btn').disabled = false;
@@ -136,22 +122,49 @@ async function fetchMarket() {
 function coreCalc(type, gridPrices, startPrice, feeRate, initCapital, gridDiffs) {
     let usd = initCapital, pos = 0, trades = 0, feeUsd = 0, arbUsd = 0, history = [], prev = startPrice;
     const gridCount = gridPrices.length, perUsd = initCapital / gridCount;
-    let lActive = new Array(gridCount).fill(type === "long" || type === "neutral"), sActive = new Array(gridCount).fill(type === "short" || type === "neutral");
+
+    // --- 【修复1】初始建仓逻辑 ---
+    let lActive = new Array(gridCount).fill(true);
+    let sActive = new Array(gridCount).fill(true);
+
+    gridPrices.forEach((p, i) => {
+        if (type === "long" && startPrice > p) {
+            let cost = perUsd; let fee = cost * feeRate;
+            usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false; 
+        } else if (type === "short" && startPrice < p) {
+            let cost = perUsd; let fee = cost * feeRate;
+            usd += (cost - fee); pos -= (cost / p); feeUsd += fee; sActive[i] = false;
+        } else if (type === "neutral") {
+            // 中性网格初始不持仓，lActive和sActive均为true
+        }
+    });
+
     globalKlines.forEach(k => {
-        const [t, o, h, l, c] = k.map(Number); const isUp = c > prev;
+        const [t, o, h, l, c] = k.map(Number);
         const exec = (i) => {
             const p = gridPrices[i], d = gridDiffs[i];
-            if (lActive[i] && prev > p && l <= p) { 
-                const amt = perUsd/p, fee = perUsd*feeRate; if(usd >= (perUsd+fee)){ usd-=(perUsd+fee); pos+=amt; feeUsd+=fee; lActive[i]=false; }
-            } else if (type!=="short" && !lActive[i] && prev<(p+d) && h>=(p+d)) {
-                const amt=perUsd/p, inc=amt*(p+d), fee=inc*feeRate; usd+=(inc-fee); pos-=amt; feeUsd+=fee; arbUsd+=(inc-fee-perUsd); trades++; lActive[i]=true;
+            // 做多买入逻辑 (或中性买入)
+            if ((type === "long" || type === "neutral") && lActive[i] && l <= p && prev > p) {
+                const cost = perUsd; const fee = cost * feeRate;
+                if (usd >= (cost + fee)) { usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false; }
+            } 
+            // 做多卖出逻辑 (套利实现)
+            else if (type !== "short" && !lActive[i] && h >= (p + d) && prev < (p + d)) {
+                const sellAmt = perUsd / p; const income = sellAmt * (p + d); const fee = income * feeRate;
+                usd += (income - fee); pos -= sellAmt; feeUsd += fee; arbUsd += (income - fee - perUsd); trades++; lActive[i] = true;
             }
-            if (sActive[i] && prev<p && h>=p) {
-                const amt=perUsd/p, fee=perUsd*feeRate; if(usd>=perUsd){ usd+=(perUsd-fee); pos-=amt; feeUsd+=fee; sActive[i]=false; }
-            } else if (type!=="long" && !sActive[i] && prev>(p-d) && l<=(p-d)) {
-                const amt=perUsd/p, cost=amt*(p-d), fee=cost*feeRate; usd-=(cost+fee); pos+=amt; feeUsd+=fee; arbUsd+=(perUsd-cost-fee); trades++; sActive[i]=true;
+            // 做空开仓逻辑 (或中性开空)
+            if ((type === "short" || type === "neutral") && sActive[i] && h >= p && prev < p) {
+                const val = perUsd; const fee = val * feeRate;
+                usd += (val - fee); pos -= (val / p); feeUsd += fee; sActive[i] = false;
+            }
+            // 做空平仓逻辑 (套利实现)
+            else if (type !== "long" && !sActive[i] && l <= (p - d) && prev > (p - d)) {
+                const buyAmt = perUsd / p; const cost = buyAmt * (p - d); const fee = cost * feeRate;
+                usd -= (cost + fee); pos += buyAmt; feeUsd += fee; arbUsd += (perUsd - cost - fee); trades++; sActive[i] = true;
             }
         };
+        const isUp = c > prev;
         if(isUp) for(let i=0;i<gridCount;i++) exec(i); else for(let i=gridCount-1;i>=0;i--) exec(i);
         history.push(usd + pos * c); prev = c;
     });
@@ -176,13 +189,13 @@ function renderUI(res, holdRet) {
             <div class="log-header"><span class="log-title">${title}</span><span class="final-ret ${d.ret>=0?'up':'down'}">${d.ret>=0?'+':''}${d.ret.toFixed(2)}%</span></div>
             <div class="stat-grid">
                 <div class="stat-item"><span class="stat-label">成交</span><span class="stat-val">${d.trades}</span></div>
-                <div class="stat-item"><span class="stat-label">套利</span><span class="stat-val up">+${d.arbPct.toFixed(2)}%</span></div>
-                <div class="stat-item"><span class="stat-label">手续费</span><span class="stat-val down">-${d.feePct.toFixed(2)}%</span></div>
+                <div class="stat-item"><span class="stat-label">网格套利</span><span class="stat-val up">+${d.arbPct.toFixed(2)}%</span></div>
+                <div class="stat-item"><span class="stat-label">总手续费</span><span class="stat-val down">-${d.feePct.toFixed(2)}%</span></div>
             </div>
-            <div class="alpha-highlight" style="border-color:${getAlpha(d.ret)>=0?'rgba(56,158,13,0.3)':'rgba(245,34,45,0.3)'}"><span style="font-size:8px;color:var(--text-dim)">ALPHA</span><span class="alpha-val ${getAlpha(d.ret)>=0?'up':'down'}">${getAlpha(d.ret)>=0?'+':''}${getAlpha(d.ret).toFixed(2)}%</span></div>
+            <div class="alpha-highlight" style="border-color:${getAlpha(d.ret)>=0?'rgba(56,158,13,0.3)':'rgba(245,34,45,0.3)'}"><span style="font-size:8px;color:var(--text-dim)">ALPHA (对比持币)</span><span class="alpha-val ${getAlpha(d.ret)>=0?'up':'down'}">${getAlpha(d.ret)>=0?'+':''}${getAlpha(d.ret).toFixed(2)}%</span></div>
         </div>`;
     center.innerHTML = build("LONG 多头网格",res.long,"var(--red)") + build("SHORT 空头网格",res.short,"var(--green)") + build("NEUTRAL 中性网格",res.neutral,"var(--gold)") + 
-        `<div class="log-row" style="border-left:2px solid var(--blue);opacity:0.8;"><div class="log-header"><span class="log-title">HOLD 基准持币</span><span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span></div></div>`;
+        `<div class="log-row" style="border-left:2px solid var(--blue);opacity:0.8;"><div class="log-header"><span class="log-title">HOLD 基准持币</span><span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span></div><div style="font-size:8px;color:var(--text-dim);text-align:center;">MARKET BENCHMARK</div></div>`;
 }
 
 function renderChart(res, hold) {
