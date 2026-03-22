@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini Grid Lab - 全视图审计终端 v5.7</title>
+    <title>Gemini Grid Lab - 全视图审计终端 v6.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
@@ -11,7 +11,9 @@
     <style>
         :root {
             --bg-deep: #080a0f; --panel-bg: rgba(22, 27, 34, 0.8); --border: rgba(255, 255, 255, 0.08);
-            --red: #f5222d; --green: #389e0d; --gold: #d48806; --blue: #1677ff; --text: #c9d1d9; --text-dim: #8b949e;
+            --red: #f5222d; --green: #389e0d; --gold: #d48806; --blue: #1677ff; 
+            --cyan: #00f2ff; --purple: #722ed1; --orange: #fa8c16;
+            --text: #c9d1d9; --text-dim: #8b949e;
         }
         body { height: 100vh; margin: 0; overflow: hidden; font-family: 'JetBrains Mono', sans-serif; background: var(--bg-deep); color: var(--text); font-size: 11px; }
         .main-wrapper { display: flex; height: 100vh; padding: 6px; box-sizing: border-box; gap: 6px; }
@@ -26,8 +28,8 @@
         input[readonly] { background: transparent; border: none; color: #58a6ff; font-weight: bold; }
         .btn-fetch { background: #1c1c1c; color: var(--red); border: 1px solid #442222; padding: 2px; border-radius: 3px; cursor: pointer; width: 100%; font-size: 9px; margin: 2px 0; }
         .btn-run { background: var(--red); color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 11px; }
-        #audit-data-center { flex: 1; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow: hidden; }
-        .log-row { flex: 1; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; display: flex; flex-direction: column; justify-content: space-around; min-height: 0; }
+        #audit-data-center { flex: 1; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; }
+        .log-row { flex: 1; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; display: flex; flex-direction: column; justify-content: space-around; min-height: 60px; }
         .log-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .log-title { font-weight: bold; font-size: 10px; }
         .final-ret { font-size: 12px; font-weight: 800; }
@@ -37,6 +39,10 @@
         .chart-view { flex-grow: 1; background: var(--panel-bg); border-radius: 6px; border: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; }
         .up { color: var(--red) !important; } .down { color: var(--green) !important; }
         #mainChart { flex-grow: 1; width: 100% !important; height: 100% !important; min-height: 0; }
+        
+        /* 滚动条样式 */
+        #audit-data-center::-webkit-scrollbar { width: 4px; }
+        #audit-data-center::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
     </style>
 </head>
 <body>
@@ -45,18 +51,19 @@
         <div class="config-card">
             <div class="section-title">Terminal Access 行情接入</div>
             <div class="row">
-                <div class="input-item"><label>交易对</label><input id="symbol" value="BTCUSDT"></div>
+                <div class="input-item"><label>交易对</label><input id="symbol" value="ETHUSDT"></div>
                 <div class="input-item">
                     <label>周期</label>
                     <select id="interval">
-                        <option value="1m">1min</option><option value="5m">5min</option><option value="15m">15min</option>
-                        <option value="30m">30min</option><option value="1h" selected>1h</option><option value="4h">4h</option>
+                        <option value="1m">1min</option><option value="5m" selected>5min</option><option value="15m">15min</option>
+                        <option value="30m">30min</option><option value="1h">1h</option><option value="4h">4h</option>
                         <option value="1d">1d</option><option value="3d">3d</option>
                     </select>
                 </div>
             </div>
             <div class="row"><div class="input-item"><label>审计时间跨度</label><input id="dateRange"></div></div>
             <button class="btn-fetch" onclick="fetchMarket()">📡 FETCH HISTORICAL DATA</button>
+            
             <div class="section-title">Strategy Configuration</div>
             <div class="row">
                 <div class="input-item"><label>起点价 (Start)</label><input id="priceStart" readonly></div>
@@ -75,10 +82,10 @@
                 <div class="input-item"><label>模式</label><select id="gridMode"><option value="arithmetic">等差</option><option value="geometric">等比</option></select></div>
             </div>
             <div class="row">
-                <div class="input-item"><label>费率(%)</label><input id="fee" type="number" value="0" step="0.01"></div>
+                <div class="input-item"><label>费率(%)</label><input id="fee" type="number" value="0.001" step="0.001"></div>
                 <div class="input-item"><label>本金(USD)</label><input id="capital" type="number" value="1000"></div>
             </div>
-            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 EXECUTE DEEP AUDIT</button>
+            <button class="btn-run" id="run-btn" onclick="runBacktest()" disabled>🚀 EXECUTE DEEP AUDIT (6 STRATS)</button>
         </div>
         <div id="audit-data-center"></div>
     </div>
@@ -93,125 +100,349 @@
 
 <script>
 let chart; let globalKlines = []; let fp;
-window.onload = () => { fp = flatpickr("#dateRange", { mode: "range", locale: "zh", dateFormat: "Y-m-d", defaultDate: [new Date().setDate(new Date().getDate() - 7), new Date()], theme: "dark" }); };
+window.onload = () => { 
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 3);
+    fp = flatpickr("#dateRange", { mode: "range", locale: "zh", dateFormat: "Y-m-d", defaultDate: [start, end], theme: "dark" }); 
+};
 
 async function fetchMarket() {
     const symbol = document.getElementById('symbol').value.toUpperCase();
-    const dates = fp.selectedDates; if(dates.length < 2) return;
-    let sTime = dates[0].getTime(); const eTime = dates[1].setHours(23,59,59,999);
-    globalKlines = []; const statusInfo = document.getElementById('data-info');
+    const dates = fp.selectedDates; if(dates.length < 2) return alert("请选择时间范围");
+    
+    let sTime = dates[0].getTime(); 
+    const eTime = dates[1].setHours(23,59,59,999);
+    
+    globalKlines = []; 
+    const statusInfo = document.getElementById('data-info');
+    statusInfo.innerText = "SYNCING...";
+    
     try {
         while (true) {
             const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${document.getElementById('interval').value}&startTime=${sTime}&endTime=${eTime}&limit=1000`);
-            const data = await res.json(); if (!data || data.length === 0) break;
-            globalKlines = globalKlines.concat(data); if (data.length < 1000) break;
+            const data = await res.json(); 
+            if (!data || data.length === 0) break;
+            
+            globalKlines = globalKlines.concat(data); 
+            if (data.length < 1000) break;
+            
             sTime = data[data.length - 1][0] + 1;
             statusInfo.innerText = `SYNCING... (${globalKlines.length} BARS)`;
         }
+        
+        if(globalKlines.length === 0) throw new Error("No data");
+
         const startPrice = parseFloat(globalKlines[0][4]), endPrice = parseFloat(globalKlines[globalKlines.length - 1][4]);
         const high = Math.max(...globalKlines.map(k=>parseFloat(k[2]))), low = Math.min(...globalKlines.map(k=>parseFloat(k[3])));
+        
         document.getElementById('priceStart').value = startPrice.toFixed(2);
         document.getElementById('priceEnd').value = endPrice.toFixed(2);
-        document.getElementById('refMax').value = high.toFixed(2); document.getElementById('refMin').value = low.toFixed(2);
-        document.getElementById('gridUpper').value = high.toFixed(2); document.getElementById('gridLower').value = low.toFixed(2);
+        document.getElementById('refMax').value = high.toFixed(2); 
+        document.getElementById('refMin').value = low.toFixed(2);
+        document.getElementById('gridUpper').value = high.toFixed(2); 
+        document.getElementById('gridLower').value = low.toFixed(2);
+        
         document.getElementById('run-btn').disabled = false;
-        statusInfo.innerText = `${symbol} | ${globalKlines.length} K线 | 振幅: ${((high-low)/low*100).toFixed(2)}%`;
-    } catch(e) { statusInfo.innerText = "ERROR"; alert("FETCH FAILED"); }
+        statusInfo.innerText = `${symbol} | ${globalKlines.length} K 线 | 振幅：${((high-low)/low*100).toFixed(2)}%`;
+    } catch(e) { 
+        console.error(e);
+        statusInfo.innerText = "ERROR"; 
+        alert("FETCH FAILED: " + e.message); 
+    }
 }
 
-function coreCalc(type, gridPrices, startPrice, feeRate, initCapital, gridDiffs) {
+/**
+ * 核心计算引擎
+ * @param {string} type - 'long', 'short', 'neutral'
+ * @param {string} mode - 'position' (有底仓), 'no_position' (无底仓)
+ * @param {array} gridPrices - 网格价格数组
+ * @param {number} startPrice - 起始价格
+ * @param {number} feeRate - 手续费率
+ * @param {number} initCapital - 初始资金
+ * @param {array} gridDiffs - 网格间距数组
+ */
+function coreCalc(type, mode, gridPrices, startPrice, feeRate, initCapital, gridDiffs) {
     let usd = initCapital, pos = 0, trades = 0, feeUsd = 0, arbUsd = 0, history = [], prev = startPrice;
-    const gridCount = gridPrices.length, perUsd = initCapital / gridCount;
-
-    // --- 【修复1】初始建仓逻辑 ---
+    const gridCount = gridPrices.length;
+    const perUsd = initCapital / gridCount; // 每格分配资金
+    
+    // 状态数组
     let lActive = new Array(gridCount).fill(true);
     let sActive = new Array(gridCount).fill(true);
 
-    gridPrices.forEach((p, i) => {
-        if (type === "long" && startPrice > p) {
-            let cost = perUsd; let fee = cost * feeRate;
-            usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false; 
-        } else if (type === "short" && startPrice < p) {
-            let cost = perUsd; let fee = cost * feeRate;
-            usd += (cost - fee); pos -= (cost / p); feeUsd += fee; sActive[i] = false;
-        } else if (type === "neutral") {
-            // 中性网格初始不持仓，lActive和sActive均为true
+    // --- 【修复】初始建仓逻辑：按市价建仓，确保起点净值=1000 ---
+    if (mode === 'position') {
+        // 1. 确定起始价格在网格中的位置索引
+        let startIndex = 0;
+        // 寻找 startPrice 位于哪个区间 [grid[i], grid[i+1]]
+        for(let i=0; i<gridCount-1; i++) {
+            if (startPrice >= gridPrices[i] && startPrice <= gridPrices[i+1]) {
+                startIndex = i;
+                break;
+            }
         }
-    });
+        // 边界处理
+        if (startPrice < gridPrices[0]) startIndex = -1; 
+        if (startPrice > gridPrices[gridCount-1]) startIndex = gridCount - 1;
 
+        if (type === 'long') {
+            // Long 有底仓：价格越低仓位越重。
+            // 在 startPrice 之下的所有格子都应该处于“已买入”状态。
+            // 也就是 grid[0] ... grid[startIndex] 都是持有的。
+            let targetGridCount = startIndex + 1;
+            if (targetGridCount < 0) targetGridCount = 0;
+            if (targetGridCount > gridCount) targetGridCount = gridCount;
+
+            // 按市价计算初始仓位
+            const investUsd = targetGridCount * perUsd;
+            if (investUsd > 0) {
+                pos = investUsd / startPrice;
+                usd = initCapital - investUsd;
+                // 扣除开仓手续费 (简化处理，假设一次性扣除)
+                const openFee = investUsd * feeRate;
+                usd -= openFee; 
+                feeUsd += openFee;
+            }
+
+            // 初始化状态：下方的格子标记为 false (已买入，等待卖出)
+            for (let i = 0; i <= startIndex; i++) lActive[i] = false;
+
+        } else if (type === 'short') {
+            // Short 有底仓：价格越高仓位越重（空单）。
+            // 在 startPrice 之上的所有格子都应该处于“已开空”状态。
+            // 也就是 grid[startIndex+1] ... grid[end] 都是持有的空单。
+            let targetGridCount = gridCount - 1 - startIndex;
+            if (targetGridCount < 0) targetGridCount = 0;
+            
+            const investUsd = targetGridCount * perUsd;
+            if (investUsd > 0) {
+                pos = -(investUsd / startPrice); // 空单 pos 为负
+                usd = initCapital + investUsd; // 开空获得 USDT
+                // 扣除开仓手续费
+                const openFee = investUsd * feeRate;
+                usd -= openFee;
+                feeUsd += openFee;
+            }
+
+            // 初始化状态：上方的格子标记为 false (已开空，等待平仓)
+            for (let i = startIndex + 1; i < gridCount; i++) sActive[i] = false;
+
+        } else if (type === 'neutral') {
+             // 中性网格通常定义为无底仓，如果强行 Position，这里暂不处理或视为 NoPos
+             // 保持 usd=initCapital, pos=0
+        }
+    }
+
+    // --- 逐 K 线回测 ---
     globalKlines.forEach(k => {
         const [t, o, h, l, c] = k.map(Number);
+        
         const exec = (i) => {
             const p = gridPrices[i], d = gridDiffs[i];
-            // 做多买入逻辑 (或中性买入)
-            if ((type === "long" || type === "neutral") && lActive[i] && l <= p && prev > p) {
-                const cost = perUsd; const fee = cost * feeRate;
-                if (usd >= (cost + fee)) { usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false; }
-            } 
-            // 做多卖出逻辑 (套利实现)
-            else if (type !== "short" && !lActive[i] && h >= (p + d) && prev < (p + d)) {
-                const sellAmt = perUsd / p; const income = sellAmt * (p + d); const fee = income * feeRate;
-                usd += (income - fee); pos -= sellAmt; feeUsd += fee; arbUsd += (income - fee - perUsd); trades++; lActive[i] = true;
+            
+            // === LONG 逻辑 ===
+            if (type === 'long') {
+                // 买入：价格下穿网格线
+                if (lActive[i] && l <= p && prev > p) {
+                    const cost = perUsd; 
+                    const fee = cost * feeRate;
+                    if (usd >= cost + fee) {
+                        usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false;
+                    }
+                }
+                // 卖出：价格上穿 (网格线 + 间距)
+                else if (!lActive[i] && h >= (p + d) && prev < (p + d)) {
+                    // 计算卖出量：这里简化为每格对应的币量。
+                    // 严谨做法应记录每格买入的具体币量。
+                    // 近似做法：假设每格投入 perUsd，则卖出 perUsd/p 个币 (基于当前网格价 p 的近似)
+                    // 更好的近似：卖出 (perUsd / p) 个币。
+                    const sellAmt = perUsd / p; 
+                    const income = sellAmt * (p + d);
+                    const fee = income * feeRate;
+                    usd += (income - fee); pos -= sellAmt; feeUsd += fee; 
+                    arbUsd += (income - fee - perUsd); 
+                    trades++; lActive[i] = true;
+                }
             }
-            // 做空开仓逻辑 (或中性开空)
-            if ((type === "short" || type === "neutral") && sActive[i] && h >= p && prev < p) {
-                const val = perUsd; const fee = val * feeRate;
-                usd += (val - fee); pos -= (val / p); feeUsd += fee; sActive[i] = false;
+            
+            // === SHORT 逻辑 ===
+            if (type === 'short') {
+                // 开空：价格上穿网格线
+                if (sActive[i] && h >= p && prev < p) {
+                    const val = perUsd;
+                    const fee = val * feeRate;
+                    usd += (val - fee); pos -= (val / p); feeUsd += fee; sActive[i] = false;
+                }
+                // 平空：价格下穿 (网格线 - 间距)
+                else if (!sActive[i] && l <= (p - d) && prev > (p - d)) {
+                    const buyAmt = perUsd / p;
+                    const cost = buyAmt * (p - d);
+                    const fee = cost * feeRate;
+                    usd -= (cost + fee); pos += buyAmt; feeUsd += fee;
+                    arbUsd += (perUsd - cost - fee);
+                    trades++; sActive[i] = true;
+                }
             }
-            // 做空平仓逻辑 (套利实现)
-            else if (type !== "long" && !sActive[i] && l <= (p - d) && prev > (p - d)) {
-                const buyAmt = perUsd / p; const cost = buyAmt * (p - d); const fee = cost * feeRate;
-                usd -= (cost + fee); pos += buyAmt; feeUsd += fee; arbUsd += (perUsd - cost - fee); trades++; sActive[i] = true;
+
+            // === NEUTRAL 逻辑 (无底仓) ===
+            if (type === 'neutral') {
+                // 下半区 (做多部分): 只有价格 < startPrice 的格子才生效
+                if (p < startPrice) {
+                     // 买入
+                    if (lActive[i] && l <= p && prev > p) {
+                        const cost = perUsd; 
+                        const fee = cost * feeRate;
+                        if (usd >= cost + fee) {
+                            usd -= (cost + fee); pos += (cost / p); feeUsd += fee; lActive[i] = false;
+                        }
+                    }
+                    // 卖出
+                    else if (!lActive[i] && h >= (p + d) && prev < (p + d)) {
+                        const sellAmt = perUsd / p;
+                        const income = sellAmt * (p + d);
+                        const fee = income * feeRate;
+                        usd += (income - fee); pos -= sellAmt; feeUsd += fee;
+                        arbUsd += (income - fee - perUsd);
+                        trades++; lActive[i] = true;
+                    }
+                } 
+                // 上半区 (做空部分): 只有价格 > startPrice 的格子才生效
+                else if (p > startPrice) {
+                    // 开空
+                    if (sActive[i] && h >= p && prev < p) {
+                        const val = perUsd;
+                        const fee = val * feeRate;
+                        usd += (val - fee); pos -= (val / p); feeUsd += fee; sActive[i] = false;
+                    }
+                    // 平空
+                    else if (!sActive[i] && l <= (p - d) && prev > (p - d)) {
+                        const buyAmt = perUsd / p;
+                        const cost = buyAmt * (p - d);
+                        const fee = cost * feeRate;
+                        usd -= (cost + fee); pos += buyAmt; feeUsd += fee;
+                        arbUsd += (perUsd - cost - fee);
+                        trades++; sActive[i] = true;
+                    }
+                }
             }
         };
+
         const isUp = c > prev;
-        if(isUp) for(let i=0;i<gridCount;i++) exec(i); else for(let i=gridCount-1;i>=0;i--) exec(i);
-        history.push(usd + pos * c); prev = c;
+        if(isUp) for(let i=0;i<gridCount;i++) exec(i); 
+        else for(let i=gridCount-1;i>=0;i--) exec(i);
+        
+        history.push(usd + pos * c); 
+        prev = c;
     });
+    
     return { history, trades, feePct: (feeUsd/initCapital)*100, arbPct: (arbUsd/initCapital)*100, ret: ((history[history.length-1]/initCapital)-1)*100 };
 }
 
 function runBacktest() {
     const min=parseFloat(document.getElementById('gridLower').value), max=parseFloat(document.getElementById('gridUpper').value), count=parseInt(document.getElementById('grids').value);
     const fee=parseFloat(document.getElementById('fee').value)/100, capital=parseFloat(document.getElementById('capital').value), mode=document.getElementById('gridMode').value, start=parseFloat(globalKlines[0][4]);
+    
     let prices = [], diffs = [];
-    if (mode==="arithmetic") { const step=(max-min)/(count-1); for(let i=0;i<count;i++){ prices.push(min+i*step); diffs.push(step); } }
-    else { const ratio=Math.pow(max/min,1/(count-1)); for(let i=0;i<count;i++){ let p=min*Math.pow(ratio,i); prices.push(p); diffs.push(p*ratio-p); } }
-    const res = { long: coreCalc("long",prices,start,fee,capital,diffs), short: coreCalc("short",prices,start,fee,capital,diffs), neutral: coreCalc("neutral",prices,start,fee,capital,diffs) };
-    const holdHistory = globalKlines.map(k=>(capital*(1-fee)/start)*parseFloat(k[4])), holdRet = ((holdHistory[holdHistory.length-1]/capital)-1)*100;
-    renderChart(res, holdHistory); renderUI(res, holdRet);
+    if (mode==="arithmetic") { 
+        const step=(max-min)/(count-1); 
+        for(let i=0;i<count;i++){ prices.push(min+i*step); diffs.push(step); } 
+    } else { 
+        const ratio=Math.pow(max/min,1/(count-1)); 
+        for(let i=0;i<count;i++){ let p=min*Math.pow(ratio,i); prices.push(p); diffs.push(p*ratio-p); } 
+    }
+    
+    // --- 执行 6 种策略计算 ---
+    const strategies = [
+        { name: "LONG (Pos)", type: "long", mode: "position", color: "#f5222d" },
+        { name: "LONG (NoPos)", type: "long", mode: "no_position", color: "#ff7875" },
+        { name: "SHORT (Pos)", type: "short", mode: "position", color: "#389e0d" },
+        { name: "SHORT (NoPos)", type: "short", mode: "no_position", color: "#73d13d" },
+        { name: "NEUTRAL", type: "neutral", mode: "no_position", color: "#d48806" }, 
+    ];
+
+    const results = {};
+    strategies.forEach(s => {
+        results[s.name] = coreCalc(s.type, s.mode, prices, start, fee, capital, diffs);
+    });
+
+    // Hold 曲线
+    const holdHistory = globalKlines.map(k => capital * (parseFloat(k[4]) / start));
+    const holdRet = ((holdHistory[holdHistory.length-1]/capital)-1)*100;
+    
+    renderChart(results, holdHistory); 
+    renderUI(results, holdRet);
 }
 
-function renderUI(res, holdRet) {
-    const center = document.getElementById('audit-data-center'), getAlpha = (ret) => (ret-holdRet);
-    const build = (title, d, color) => `
+function renderUI(results, holdRet) {
+    const center = document.getElementById('audit-data-center');
+    const getAlpha = (ret) => (ret-holdRet);
+    
+    let html = '';
+    const strategyColors = {
+        "LONG (Pos)": "#f5222d", "LONG (NoPos)": "#ff7875",
+        "SHORT (Pos)": "#389e0d", "SHORT (NoPos)": "#73d13d",
+        "NEUTRAL": "#d48806"
+    };
+
+    for (const [name, data] of Object.entries(results)) {
+        const color = strategyColors[name];
+        const alpha = getAlpha(data.ret);
+        html += `
         <div class="log-row" style="border-left:2px solid ${color}">
-            <div class="log-header"><span class="log-title">${title}</span><span class="final-ret ${d.ret>=0?'up':'down'}">${d.ret>=0?'+':''}${d.ret.toFixed(2)}%</span></div>
+            <div class="log-header"><span class="log-title">${name}</span><span class="final-ret ${data.ret>=0?'up':'down'}">${data.ret>=0?'+':''}${data.ret.toFixed(2)}%</span></div>
             <div class="stat-grid">
-                <div class="stat-item"><span class="stat-label">成交</span><span class="stat-val">${d.trades}</span></div>
-                <div class="stat-item"><span class="stat-label">网格套利</span><span class="stat-val up">+${d.arbPct.toFixed(2)}%</span></div>
-                <div class="stat-item"><span class="stat-label">总手续费</span><span class="stat-val down">-${d.feePct.toFixed(2)}%</span></div>
+                <div class="stat-item"><span class="stat-label">成交</span><span class="stat-val">${data.trades}</span></div>
+                <div class="stat-item"><span class="stat-label">网格套利</span><span class="stat-val up">+${data.arbPct.toFixed(2)}%</span></div>
+                <div class="stat-item"><span class="stat-label">总手续费</span><span class="stat-val down">-${data.feePct.toFixed(2)}%</span></div>
             </div>
-            <div class="alpha-highlight" style="border-color:${getAlpha(d.ret)>=0?'rgba(56,158,13,0.3)':'rgba(245,34,45,0.3)'}"><span style="font-size:8px;color:var(--text-dim)">ALPHA (对比持币)</span><span class="alpha-val ${getAlpha(d.ret)>=0?'up':'down'}">${getAlpha(d.ret)>=0?'+':''}${getAlpha(d.ret).toFixed(2)}%</span></div>
+            <div class="alpha-highlight" style="border-color:${alpha>=0?'rgba(56,158,13,0.3)':'rgba(245,34,45,0.3)'}"><span style="font-size:8px;color:var(--text-dim)">ALPHA (对比持币)</span><span class="alpha-val ${alpha>=0?'up':'down'}">${alpha>=0?'+':''}${alpha.toFixed(2)}%</span></div>
         </div>`;
-    center.innerHTML = build("LONG 多头网格",res.long,"var(--red)") + build("SHORT 空头网格",res.short,"var(--green)") + build("NEUTRAL 中性网格",res.neutral,"var(--gold)") + 
-        `<div class="log-row" style="border-left:2px solid var(--blue);opacity:0.8;"><div class="log-header"><span class="log-title">HOLD 基准持币</span><span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span></div><div style="font-size:8px;color:var(--text-dim);text-align:center;">MARKET BENCHMARK</div></div>`;
+    }
+    
+    html += `<div class="log-row" style="border-left:2px solid var(--blue);opacity:0.8;"><div class="log-header"><span class="log-title">HOLD 基准持币</span><span class="final-ret ${holdRet>=0?'up':'down'}">${holdRet>=0?'+':''}${holdRet.toFixed(2)}%</span></div><div style="font-size:8px;color:var(--text-dim);text-align:center;">MARKET BENCHMARK</div></div>`;
+    
+    center.innerHTML = html;
 }
 
-function renderChart(res, hold) {
+function renderChart(results, hold) {
     if (chart) chart.destroy();
     const timeLabels = globalKlines.map(k => { 
         const d = new Date(k[0]), iv = document.getElementById('interval').value;
         if(iv==='1d'||iv==='3d') return `${d.getMonth()+1}/${d.getDate()}`;
         return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()<10?'0':''}${d.getMinutes()}`;
     });
+    
+    const datasets = [];
+    const colors = {
+        "LONG (Pos)": "#f5222d", "LONG (NoPos)": "#ff7875",
+        "SHORT (Pos)": "#389e0d", "SHORT (NoPos)": "#73d13d",
+        "NEUTRAL": "#d48806"
+    };
+
+    for (const [name, data] of Object.entries(results)) {
+        datasets.push({
+            label: name,
+            data: data.history,
+            borderColor: colors[name],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.1,
+            hidden: false 
+        });
+    }
+    
+    datasets.push({
+        label: 'HOLD',
+        data: hold,
+        borderColor: '#00f2ff',
+        borderDash: [4,4],
+        borderWidth: 1.2,
+        pointRadius: 0
+    });
+
     chart = new Chart(document.getElementById('mainChart'), {
-        type: 'line', data: { labels: timeLabels, datasets: [
-            { label: 'LONG', data: res.long.history, borderColor: '#f5222d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
-            { label: 'SHORT', data: res.short.history, borderColor: '#389e0d', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
-            { label: 'NEUTRAL', data: res.neutral.history, borderColor: '#d48806', borderWidth: 1.5, pointRadius: 0, tension: 0.05 },
-            { label: 'HOLD', data: hold, borderColor: '#00f2ff', borderDash: [4,4], borderWidth: 1.2, pointRadius: 0 }
-        ]},
+        type: 'line', data: { labels: timeLabels, datasets: datasets },
         options: {
             responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
             scales: { 
